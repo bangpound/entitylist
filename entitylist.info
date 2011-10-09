@@ -1,0 +1,10 @@
+name = Entity List
+description = Provides an abstraction layer for different query builders like Views and EntityFieldQuery. This lets you build lists of content from different query builders but handle presentation and caching consistently.
+core = 7.x
+
+files[] = includes/EntityList.inc
+files[] = includes/EntityListHandler.inc
+
+files[] = handlers/EntityListHandlerEFQ.inc
+files[] = handlers/EntityListHandlerViews.inc
+files[] = handlers/EntityListHandlerEntityReference.inc

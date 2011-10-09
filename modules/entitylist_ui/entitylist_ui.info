@@ -1,0 +1,5 @@
+name = Entity List UI
+description = UI module for the Entity List module.
+core = 7.x
+
+dependencies[] = entitylist

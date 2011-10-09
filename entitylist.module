@@ -1,0 +1,173 @@
+<?php
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function entitylist_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'ctools') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements of hook_ctools_plugin_type().
+ *
+ * @todo
+ *   Find out if we really need 'use hooks'.
+ */
+function entitylist_ctools_plugin_type() {
+  return array(
+    'handlers' => array(
+      'cache' => TRUE,
+      'use hooks' => TRUE,
+      'classes' => array('handler'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_entitylist_handlers().
+ */
+function entitylist_entitylist_handlers() {
+  $path = drupal_get_path('module', 'entitylist') . '/handlers';
+  return array(
+    'EntityListHandlerViews' => array(
+      'name' => 'Views',
+      'description' => 'Use the power and flexibility of Views as the query builder.',
+      'handler' => array(
+        'class' => 'EntityListHandlerViews',
+        'file' => 'EntityListHandlerViews.inc',
+        'path' => $path,
+      ),
+    ),
+    'EntityListHandlerNodeQueue' => array(
+      'name' => 'Nodequeue',
+      'description' => 'Fetches entities (only nodes) directly from a nodequeue.',
+      'handler' => array(
+        'class' => 'EntityListHandlerNodeQueue',
+        'file' => 'EntityListHandlerNodeQueue.inc',
+        'path' => $path,
+      ),
+    ),
+    'EntityListHandlerEntityReference' => array(
+      'name' => 'Entity Reference field',
+      'description' => 'Fetches entities directly from an Entity Reference field on an entity.',
+      'handler' => array(
+        'class' => 'EntityListHandlerEntityReference',
+        'file' => 'EntityListHandlerEntityReference.inc',
+        'path' => $path,
+      ),
+    ),
+    'EntityListHandlerEFQ' => array(
+      'name' => 'Entity Field Query',
+      'description' => 'A Field API-optimized query builder. Suitable when high performance is key.',
+      'handler' => array(
+        'class' => 'EntityListHandlerEFQ',
+        'file' => 'EntityListHandlerEFQ.inc',
+        'path' => $path,
+      ),
+    ),
+  );
+}
+
+/**
+ * Entity list object factory.
+ */
+function entitylist_list_create($schema, $item) {
+  $list = new EntityList;
+
+  // Unserialize our serialized params.
+  foreach ($schema['fields'] as $field => $info) {
+    if (!empty($info['serialize'])) {
+      $list->{$field} = unserialize($item->{$field});
+    }
+    else {
+      $list->{$field} = $item->{$field};
+    }
+  }
+  return $list;
+}
+
+/**
+ * Load function for an entity list object.
+ *
+ * @todo
+ *   We need a way to load one list, without fetching all of them. We probably
+ *   should make better use of $args in entitylist_list_load_all().
+ */
+function entitylist_list_load($name) {
+  $lists = entitylist_list_load_all();
+  if (isset($lists[$name])) {
+    return $lists[$name];
+  }
+}
+
+/**
+ * Load function for an entity list object.
+ */
+function entitylist_list_load_all($args = array()) {
+  $type = !empty($args) ? 'conditions' : 'all';
+  ctools_include('export');
+  $lists = ctools_export_load_object('entitylist_lists', $type, $args);
+  if (isset($lists)) {
+    foreach ($lists as &$list) {
+      // Load each list's configuration into itself.
+      $list->load();
+    }
+    return $lists;
+  }
+}
+
+/**
+ * Get all handlers.
+ */
+function entitylist_get_handler_plugins() {
+  ctools_include('plugins');
+  return ctools_get_plugins('entitylist', 'handlers');
+}
+
+/**
+ * Helper function to build context info.
+ */
+function entitylist_build_context_info($list, $parent, $relationship = FALSE) {
+  $contexts = array();
+  $arguments = $list->argumentInput();
+
+  // Only relationships can require other arguments (contexts).
+  if ($relationship) {
+    foreach ($arguments as $key => $info) {
+      if (strpos($key, '.')) {
+        list($context, $converter) = explode('.', $key, 2);
+      }
+      else {
+        $context = $key;
+      }
+      $class_name = $info['required'] ? 'ctools_context_required' : 'ctools_context_optional';
+      $contexts[] = new $class_name($info['label'], $context);
+    }
+    // A relationship must take at least one context, otherwise it's not a
+    // relationship.
+    if (empty($contexts)) {
+      return array();
+    }
+  }
+
+  // If it's not a relationship, it can't require arguments (contexts).
+  if (!$relationship && !empty($arguments)) {
+    return array();
+  }
+
+  // Figure out which context function to use.
+  $function = $relationship ? 'entitylist_ctools_relationship_context' : 'entitylist_ctools_context';
+
+  $name = $parent . ':' . $list->name;
+  return array(
+    'name' => $name,
+    'title' => t('List: @name', array('@name' => $list->name)),
+    'description' => filter_xss_admin($list->description),
+    'keyword' => 'list',
+    'required context' => $contexts,
+    'context' => $function,
+    'context name' => 'entitylist',
+  );
+}

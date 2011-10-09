@@ -1,0 +1,98 @@
+<?php
+
+class EntityList {
+
+  public $name = '';
+
+  public $handler_plugin = NULL;
+
+  public $handler_config = array();
+
+  protected $handler = NULL;
+
+  protected $arguments = array();
+
+  protected $executed = FALSE;
+
+  protected $entities = array();
+
+  /**
+   * Load method that loads the configuration into the object itself.
+   *
+   * Since the CTools Export API is declarative by nature, we can't rely on
+   * constructor injection and entitylist_list_create() as the only factory.
+   */
+  public function load() {
+    $schema = drupal_get_schema('entitylist_lists');
+    // Unserialize our serialized params.
+    foreach ($schema['fields'] as $field => $info) {
+      if (!empty($info['serialize']) && !is_array($this->{$field})) {
+        $this->{$field} = (array) unserialize($this->{$field});
+      }
+    }
+    $this->handler = new $this->handler_plugin($this->handler_config);
+    return $this;
+  }
+
+  public function entityType() {
+    return $this->handler->entityType();
+  }
+
+  public function argumentInput() {
+    return $this->handler->argumentInput();
+  }
+
+  public function setArguments($arguments = array()) {
+    $this->handler->setArguments($arguments);
+    return $this;
+  }
+
+  public function getArguments() {
+    return $this->handler->getArguments();
+  }
+
+  protected function execute() {
+    if (!$this->executed) {
+      $arguments = $this->getArguments();
+      $indexed_entities = array();
+      $entities = $this->handler->execute($arguments);
+      if (!empty($entities)) {
+        foreach ($entities as $entity) {
+          $indexed_entities[] = $entity;
+        }
+        $this->setEntities($indexed_entities);
+      }
+      $this->executed = TRUE;
+    }
+    return $this;
+  }
+
+  protected function setEntities($result) {
+    $this->entities = $result;
+  }
+
+  public function getEntities() {
+    if (!$this->executed) {
+      $this->execute();
+    }
+    return $this->entities;
+  }
+
+  public function getEntity($id) {
+    $entities = $this->getEntities();
+    if (isset($entities[$id])) {
+      return $entities[$id];
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  public function adminPath() {
+    return $this->handler->adminPath();
+  }
+
+  public function configForm(&$form_state) {
+    return $this->handler->configForm($form_state);
+  }
+}

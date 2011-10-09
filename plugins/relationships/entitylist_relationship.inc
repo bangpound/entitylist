@@ -1,0 +1,61 @@
+<?php
+
+$plugin = array(
+  'title' => t('List with arguments'),
+  'description' => t('Creates a list context from arguments.'),
+  'context' => 'entitylist_ctools_relationship_context',
+  'get child' => 'entitylist_ctools_relationship_get_child',
+  'get children' => 'entitylist_ctools_relationship_get_children',
+);
+
+function entitylist_ctools_relationship_get_child($plugin, $parent, $child) {
+  $list = entitylist_list_load($child);
+  return entitylist_build_context_info($list, $parent, TRUE);
+}
+
+function entitylist_ctools_relationship_get_children($plugin, $parent) {
+  $children = array();
+  $lists = entitylist_list_load_all();
+  foreach ($lists as $list) {
+    $info = entitylist_build_context_info($list, $parent, TRUE);
+    if (!empty($info)) {
+      $children[$info['name']] = $info;
+    }
+  }
+  return $children;
+}
+
+function entitylist_ctools_relationship_context($contexts, $conf) {
+  $context_keys = array_keys($conf['context']);
+  if (empty($contexts[$context_keys[0]]->data)) {
+    return ctools_context_create_empty('entitylist', NULL);
+  }
+
+  if (isset($conf['name'])) {
+    list($plugin, $name) = explode(':', $conf['name']);
+    $list = entitylist_list_load($name);
+    $argument_input = $list->argumentInput();
+
+    // Now parse the argument input in what format the list wants it's
+    // arguments. It'll be either as full contexts or converters.
+    $arguments = array();
+    foreach ($argument_input as $argument_key => $info) {
+      $context_key = array_shift($context_keys);
+      if (isset($contexts[$context_key])) {
+        if (strpos($argument_key, '.')) {
+          list($context, $converter) = explode('.', $argument_key);
+          $arguments[] = ctools_context_convert_context($contexts[$context_key], $converter);
+        }
+        else {
+          $arguments[] = $contexts[$context_key];
+        }
+      }
+    }
+
+    // Set the arguments for the list.
+    $list->setArguments($arguments);
+  }
+  if (!empty($list)) {
+    return ctools_context_create('entitylist', $list);
+  }
+}
