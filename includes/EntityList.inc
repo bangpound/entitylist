@@ -53,9 +53,8 @@ class EntityList {
 
   protected function execute() {
     if (!$this->executed) {
-      $arguments = $this->getArguments();
       $indexed_entities = array();
-      $entities = $this->handler->execute($arguments);
+      $entities = $this->handler->execute();
       if (!empty($entities)) {
         foreach ($entities as $entity) {
           $indexed_entities[] = $entity;

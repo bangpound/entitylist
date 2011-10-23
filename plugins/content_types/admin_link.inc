@@ -16,11 +16,17 @@ $plugin = array(
 
 function entitylist_ctools_admin_link_render($subtype, $conf, $panel_args, $context) {
   // Get the list.
-  $list = $context->data;
+  $list = entitylist_context_get_list($context);
+  $path = $list->adminPath();
+
+  // This means that the user doesn't have access.
+  if ($path === FALSE) {
+    return;
+  }
 
   $block = new stdClass();
   $block->module  = 'entitylist';
-  $block->content = l($conf['text'], $list->adminPath());
+  $block->content = theme('entitylist_admin_link', array('text' => $conf['text'], 'path' => $path));
   return $block;
 }
 
@@ -48,4 +54,8 @@ function entitylist_ctools_admin_link_form_submit($form, &$form_state) {
   foreach (array('text') as $key) {
     $form_state['conf'][$key] = $form_state['values'][$key];
   }
+}
+
+function theme_entitylist_admin_link($variables) {
+  return '<div class="entitylist-admin">' . l($variables['text'], $variables['path']) . '</div>';
 }

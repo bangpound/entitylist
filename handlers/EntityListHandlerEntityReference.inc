@@ -22,7 +22,7 @@ class EntityListHandlerEntityReference implements EntityListHandler {
   public function argumentInput() {
     // TODO: Entity type should be from config form.
     return array(
-      'node' => array(
+      'entity:node' => array(
         'label' => 'Node',
         'required' => TRUE,
       ),
@@ -57,6 +57,12 @@ class EntityListHandlerEntityReference implements EntityListHandler {
   public function adminPath() {
     $arguments = $this->getArguments();
     $entity = $arguments[0]->data;
+
+    // TODO: This should follow the entity type configuration.
+    if (!node_access('edit', $entity)) {
+      return FALSE;
+    }
+
     $entity_type = $this->entityType();
     $entity_info = entity_get_info($entity_type);
     $uri = $entity_info['uri callback']($entity);

@@ -51,18 +51,22 @@ function entitylist_ctools_context($empty, $data = NULL, $conf = FALSE) {
   if ($conf) {
     if (is_array($data) && isset($data['name'])) {
       list($plugin, $name) = explode(':', $data['name']);
-      $list = entitylist_list_load($name);
-      $context->data = $list;
+      $data = entitylist_list_load($name);
     }
   }
 
   // $data is already the list itself. It probably came from a relationship
   // where it already was loaded and configured with some arguments (contexts).
   if (is_object($data)) {
-    $context->data = $data;
+    // We don't want to pass along the whole list object.
+    $context->data = array(
+      'name' => $data->name,
+      'arguments' => $data->getArguments(),
+    );
   }
 
   if (!empty($context->data)) {
+    $context->title = $data->title;
     return $context;
   }
 }

@@ -2,8 +2,6 @@
 
 class EntityListHandlerViews implements EntityListHandler {
 
-  protected $view = NULL;
-
   protected $config = array();
 
   protected $entityType = NULL;
@@ -17,33 +15,42 @@ class EntityListHandlerViews implements EntityListHandler {
       'name' => '',
     );
     $this->config = array_merge($defaults, $config);
-    // Load view to make it available to this handler.
-    // TODO: Can we lazy load this to save some memory?
-    if (!empty($this->config['name'])) {
+  }
+
+  /**
+   * Helper method to return the view this handler is dealing with. We can't
+   * save it in the object, because of wierdness (?) when a list context is
+   * passed around.
+   */
+  protected function getView() {
+    if (empty($this->view) && !empty($this->config['name'])) {
       list($name, $display) = explode(':', $this->config['name']);
-      $this->view = views_get_view($name);
-      if (!empty($this->view)) {
-        $this->view->set_display($display);
+      $view = views_get_view($name);
+      if (!empty($view)) {
+        $view->set_display($display);
       }
     }
+    return $view;
   }
 
   public function entityType() {
     if ($this->entityType === NULL) {
-      $table = views_fetch_data($this->view->base_table);
-      if (!isset($table['table']['base']['entity type'])) {
-        throw new EntityListException(t('Could not determine entity type of view @view', array('@view' => $this->view->name)));
+      $view = $this->getView();
+      $table = views_fetch_data($view->base_table);
+      if (!isset($table['table']['entity type'])) {
+        throw new EntityListException(t('Could not determine entity type of view @view', array('@view' => $view->name)));
       }
-      $this->entityType = $table['table']['base']['entity type'];
+      $this->entityType = $table['table']['entity type'];
     }
     return $this->entityType;
   }
 
   public function argumentInput() {
-    if (empty($this->argumentInput) && !empty($this->view)) {
+    $view = $this->getView();
+    if (empty($this->argumentInput) && !empty($view)) {
       // This code is pretty much taken directly from views_content.module.
       // TODO: Simplify when we've got our own stripped down Views display type.
-      $arguments = $this->view->display_handler->get_argument_input();
+      $arguments = $view->display_handler->get_argument_input();
       ctools_include('views');
       $contexts = array();
       foreach ($arguments as $argument) {
@@ -76,9 +83,10 @@ class EntityListHandlerViews implements EntityListHandler {
 
   public function execute() {
     $arguments = $this->getArguments();
-    $this->view->set_arguments($arguments);
-    $this->view->execute();
-    $entities = $this->view->query->get_result_entities($this->view->result);
+    $view = $this->getView();
+    $view->set_arguments($arguments);
+    $view->execute();
+    $entities = $view->query->get_result_entities($view->result);
 
     if (empty($entities[1])) {
       return array();
@@ -87,17 +95,27 @@ class EntityListHandlerViews implements EntityListHandler {
   }
 
   public function adminPath() {
+    if (!user_access('administer views')) {
+      return FALSE;
+    }
+
     list($name, $display) = explode(':', $this->config['name']);
     return 'admin/structure/views/view/' . check_plain($name) . '/edit/' . $display;
   }
 
   public function configForm(&$form_state) {
     $form = array();
-    $options = views_get_views_as_options(FALSE, 'enabled', NULL, TRUE);
+    $infos = views_get_applicable_views('returns context');
+    $options = array();
+    foreach ($infos as $info) {
+      $view = $info[0];
+      $display_id = $info[1];
+      $options[check_plain($view->name) . ':' . $display_id] = check_plain($view->human_name) . ': ' . check_plain($view->display_handler->display->display_title);
+    }
     $form['name'] = array(
       '#type' => 'select',
       '#title' => t('View'),
-      '#description' => t('Select which view to use for this handler.'),
+      '#description' => t('Select which view to use for this handler. Only view display types that returns a context will work.'),
       '#options' => $options,
       '#default_value' => array($this->config['name']),
     );

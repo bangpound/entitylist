@@ -43,7 +43,13 @@ class EntityListHandlerEFQ implements EntityListHandler {
   }
 
   public function configForm(&$form_state) {
-    
+    $form['class_name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Name of query class'),
+      '#description' => t('Enter the name of the EntitFieldQuery class that represents this list. The class has to be registered in the auto-loading registry and implement the <em>EntityListEFQ</em> interface.'),
+      '#default_value' => $this->config['class_name'],
+    );
+    return $form;
   }
 }
 

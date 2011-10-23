@@ -20,7 +20,7 @@ $plugin = array(
  */
 function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context) {
   // Get the list.
-  $list = $context->data;
+  $list = entitylist_context_get_list($context);
 
   // The "readable" index starts at 1 while the "real" index starts at 0.
   $index = $conf['index'] - 1;

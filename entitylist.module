@@ -1,6 +1,18 @@
 <?php
 
 /**
+ * Implements hook_theme().
+ */
+function entitylist_theme() {
+  return array(
+    'entitylist_admin_link' => array(
+      'variables' => array('text', 'path'),
+      'file' => 'plugins/content_types/admin_link.inc'
+    ),
+  );
+}
+
+/**
  * Implements hook_ctools_plugin_directory().
  */
 function entitylist_ctools_plugin_directory($module, $plugin) {
@@ -131,6 +143,9 @@ function entitylist_get_handler_plugins() {
  */
 function entitylist_build_context_info($list, $parent, $relationship = FALSE) {
   $contexts = array();
+  if (empty($list)) {
+    return $contexts;
+  }
   $arguments = $list->argumentInput();
 
   // Only relationships can require other arguments (contexts).
@@ -154,7 +169,11 @@ function entitylist_build_context_info($list, $parent, $relationship = FALSE) {
 
   // If it's not a relationship, it can't require arguments (contexts).
   if (!$relationship && !empty($arguments)) {
-    return array();
+    foreach ($arguments as $argument) {
+      if ($argument['required'] == TRUE) {
+        return array();
+      }
+    }
   }
 
   // Figure out which context function to use.
@@ -163,11 +182,20 @@ function entitylist_build_context_info($list, $parent, $relationship = FALSE) {
   $name = $parent . ':' . $list->name;
   return array(
     'name' => $name,
-    'title' => t('List: @name', array('@name' => $list->name)),
+    'title' => t('List: @title', array('@title' => $list->title)),
     'description' => filter_xss_admin($list->description),
-    'keyword' => 'list',
+    'keyword' => $list->name,
     'required context' => $contexts,
     'context' => $function,
     'context name' => 'entitylist',
   );
+}
+
+/**
+ * Helper function to get a list from a context.
+ */
+function entitylist_context_get_list($context) {
+  $list = entitylist_list_load($context->data['name']);
+  $list->setArguments($context->data['arguments']);
+  return $list;
 }
