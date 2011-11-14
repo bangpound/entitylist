@@ -179,15 +179,14 @@ function entitylist_build_context_info($list, $parent, $relationship = FALSE) {
   // Figure out which context function to use.
   $function = $relationship ? 'entitylist_ctools_relationship_context' : 'entitylist_ctools_context';
 
-  $name = $parent . ':' . $list->name;
   return array(
-    'name' => $name,
+    'name' => $parent . ':' . $list->name,
     'title' => t('List: @title', array('@title' => $list->title)),
     'description' => filter_xss_admin($list->description),
-    'keyword' => $list->name,
+    'keyword' => 'list',
     'required context' => $contexts,
     'context' => $function,
-    'context name' => 'entitylist',
+    'context name' => $list->name,
   );
 }
 
@@ -195,7 +194,12 @@ function entitylist_build_context_info($list, $parent, $relationship = FALSE) {
  * Helper function to get a list from a context.
  */
 function entitylist_context_get_list($context) {
-  $list = entitylist_list_load($context->data['name']);
-  $list->setArguments($context->data['arguments']);
-  return $list;
+  // We cache here, despite entity_list_load() already caching the list of
+  // lists. This will save us multiple calls to $list->setArguments().
+  $cache = drupal_static(__FUNCTION__, array());
+  if (!isset($cache[$context->data['name']])) {
+    $cache[$context->data['name']] = entitylist_list_load($context->data['name']);
+    $cache[$context->data['name']]->setArguments($context->data['arguments']);
+  }
+  return $cache[$context->data['name']];
 }

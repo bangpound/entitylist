@@ -81,6 +81,11 @@ class EntityListHandlerViews implements EntityListHandler {
     return $this->arguments;
   }
 
+  public function getCacheTags() {
+    // TODO: Set tag with arguments, to provide even better granularity.
+    return array('views' => array($this->config['name']));
+  }
+
   public function execute() {
     $arguments = $this->getArguments();
     $view = $this->getView();

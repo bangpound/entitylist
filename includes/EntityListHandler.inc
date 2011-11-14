@@ -56,6 +56,13 @@ interface EntityListHandler {
   public function getArguments();
 
   /**
+   * Getter for the cache tags that applies to this list.
+   *
+   * @return array
+   */
+  public function getCacheTags();
+
+  /**
    * Execute the handler. This function should return a numeric array of
    * entities, simply keyed by the result index.
    *

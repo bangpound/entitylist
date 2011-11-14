@@ -10,7 +10,8 @@ $plugin = array(
 
 function entitylist_ctools_relationship_get_child($plugin, $parent, $child) {
   $list = entitylist_list_load($child);
-  return entitylist_build_context_info($list, $parent, TRUE);
+  $child = entitylist_build_context_info($list, $parent, TRUE);
+  return $child;
 }
 
 function entitylist_ctools_relationship_get_children($plugin, $parent) {

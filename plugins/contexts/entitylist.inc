@@ -67,6 +67,9 @@ function entitylist_ctools_context($empty, $data = NULL, $conf = FALSE) {
 
   if (!empty($context->data)) {
     $context->title = $data->title;
+    // TODO: Make sure that this gives enough granularity when setting up
+    // caching per context. Probably a lot of cache lifetime to save right here.
+    $context->argument = $data->name;
     return $context;
   }
 }

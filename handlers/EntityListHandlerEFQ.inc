@@ -30,6 +30,10 @@ class EntityListHandlerEFQ implements EntityListHandler {
     return $this->arguments;
   }
 
+  public function getCacheTags() {
+    return array();
+  }
+
   public function execute() {
     $arguments = $this->getArguments();
     $class_name = $this->config['class_name'];

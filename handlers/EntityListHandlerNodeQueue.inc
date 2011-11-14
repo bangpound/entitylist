@@ -44,6 +44,10 @@ class EntityListHandlerNodeQueue implements EntityListHandler {
     return $this->arguments;
   }
 
+  public function getCacheTags() {
+    return array('nodequeue' => array($this->config['name']));
+  }
+
   public function execute() {
     $queue_query = db_select('node', 'n')
       ->fields('n', array('nid'));

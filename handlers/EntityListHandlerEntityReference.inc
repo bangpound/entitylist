@@ -38,6 +38,13 @@ class EntityListHandlerEntityReference implements EntityListHandler {
     return $this->arguments;
   }
 
+  public function getCacheTags() {
+    $arguments = $this->getArguments();
+    $entity = $arguments[0]->data;
+    // TODO: Make this more dynamic when the argument is configurable.
+    return array($this->entityType() => $entity->nid);
+  }
+
   public function execute() {
     $arguments = $this->getArguments();
     $entity = $arguments[0]->data;
@@ -59,7 +66,7 @@ class EntityListHandlerEntityReference implements EntityListHandler {
     $entity = $arguments[0]->data;
 
     // TODO: This should follow the entity type configuration.
-    if (!node_access('edit', $entity)) {
+    if (!node_access('update', $entity)) {
       return FALSE;
     }
 

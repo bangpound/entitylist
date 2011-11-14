@@ -22,22 +22,38 @@ function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context)
   // Get the list.
   $list = entitylist_context_get_list($context);
 
+  $block = new stdClass();
+  $block->module  = 'entitylist';
+  // Provide integration with the cachetags plugin.
+  $tags = $list->getCacheTags();
+  $block->cache_tags = $block->request_tags = $tags;
+
   // The "readable" index starts at 1 while the "real" index starts at 0.
   $index = $conf['index'] - 1;
   $entity = $list->getEntity($index);
   if (empty($entity)) {
-    return;
+    $block->content = '';
+    return $block;
   }
+
+  $entity_type = $list->entityType();
+  // TODO: Would be nice to avoid entity_get_info() here. The query handler
+  // should theoritically already know about the entity id. Can we pass that
+  // along somehow?
+  $entity_info = entity_get_info($entity_type);
+  $entity_id = $entity->{$entity_info['entity keys']['id']};
 
   // TODO: Is there a more sustainable way to render entities in a generic way,
   // without depending on entity.module and entity_view()?
-  $entity_type = $list->entityType();
   $view_function = $entity_type . '_view';
   list(, $view_mode) = explode(':', $conf['view_mode']);
 
-  $block = new stdClass();
-  $block->module  = 'entitylist';
   $block->content = $view_function($entity, $view_mode);
+
+  // Also add the entity that is being rendered.
+  $block->cache_tags[$entity_type][] = $entity_id;
+  $block->request_tags[$entity_type][] = $entity_id;
+
   return $block;
 }
 

@@ -51,6 +51,14 @@ class EntityList {
     return $this->handler->getArguments();
   }
 
+  public function getCacheTags() {
+    $tags = $this->handler->getCacheTags();
+    // Always add the list it self as a cache tag.
+    // TODO: Also add tags with arguments to provide better granularity.
+    $tags['entitylist'][] = $this->name;
+    return $tags;
+  }
+
   protected function execute() {
     if (!$this->executed) {
       $indexed_entities = array();
@@ -77,10 +85,10 @@ class EntityList {
     return $this->entities;
   }
 
-  public function getEntity($id) {
+  public function getEntity($index) {
     $entities = $this->getEntities();
-    if (isset($entities[$id])) {
-      return $entities[$id];
+    if (isset($entities[$index])) {
+      return $entities[$index];
     }
     else {
       return FALSE;
