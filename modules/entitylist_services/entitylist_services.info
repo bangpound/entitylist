@@ -1,0 +1,7 @@
+name = "Entity List Services"
+description = "Exposes a Services resource for all entity lists."
+core = "7.x"
+package = "Entity List"
+
+dependencies[] = "odata_entity"
+dependencies[] = "services"

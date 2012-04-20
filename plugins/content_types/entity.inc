@@ -1,9 +1,9 @@
 <?php
 
 $plugin = array(
-  'title' => t('List item'),
-  'category' => t('Content list'),
-  'description' => t('Displays an item from a list.'),
+  'title' => t('Entity'),
+  'category' => t('Entity list'),
+  'description' => t('Displays an entity from an entity list.'),
   'required context' => new ctools_context_required(t('List'), 'entitylist'),
   'defaults' => array(
     'index' => 1,
@@ -20,7 +20,7 @@ $plugin = array(
  */
 function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context) {
   // Get the list.
-  $list = entitylist_context_get_list($context);
+  $list = $context->data;
 
   $block = new stdClass();
   $block->module  = 'entitylist';
@@ -46,10 +46,19 @@ function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context)
   // TODO: Is there a more sustainable way to render entities in a generic way,
   // without depending on entity.module and entity_view()?
   $view_function = $entity_type . '_view';
-  list(, $view_mode) = explode(':', $conf['view_mode']);
-
-  $block->content = $view_function($entity, $view_mode);
-
+  if (strstr($conf['view_mode'], ':') === FALSE) {
+    $view_mode = $conf['view_mode'];
+  }
+  else {
+    list(, $view_mode) = explode(':', $conf['view_mode']);
+  }
+  if ($entity_type == 'comment') {
+    $node = node_load($entity->nid);
+    $block->content = $view_function($entity, $node, $view_mode);
+  }
+  else {
+    $block->content = $view_function($entity, $view_mode);
+  }
   // Also add the entity that is being rendered.
   $block->cache_tags[$entity_type][] = $entity_id;
   $block->request_tags[$entity_type][] = $entity_id;
@@ -76,15 +85,19 @@ function entitylist_ctools_entity_form($form, &$form_state) {
 
   $view_mode_options = array();
   $entity_infos = entity_get_info();
+  $generic_view_modes = array();
   foreach ($entity_infos as $entity_type => $entity_info) {
     $view_modes = array();
     foreach ($entity_info['view modes'] as $view_mode => $view_mode_info) {
       $view_modes[$entity_type . ':' . $view_mode] = $view_mode_info['label'];
+      $generic_view_modes[$view_mode] = $view_mode_info['label'];
     }
     if (!empty($view_modes)) {
       $view_mode_options[$entity_info['label']] = $view_modes;
     }
   }
+
+  $view_mode_options['Generic view modes'] = $generic_view_modes;
 
   $form['view_mode'] = array(
     '#type' => 'select',
@@ -112,11 +125,19 @@ function entitylist_ctools_entity_admin_title($subtype, $conf, $context) {
  * Admin info callback.
  */
 function entitylist_ctools_entity_admin_info($subtype, $conf, $context) {
-  list($entity_type, $view_mode) = explode(':', $conf['view_mode']);
-  $entity_info = entity_get_info($entity_type);
-
+  if (strstr($conf['view_mode'], ':') === FALSE) {
+    $view_mode = $conf['view_mode'];
+    $title = $view_mode;
+    $type = 'Generic';
+  }
+  else {
+    list($entity_type, $view_mode) = explode(':', $conf['view_mode']);
+    $entity_info = entity_get_info($entity_type);
+    $title = check_plain($entity_info['view modes'][$view_mode]['label']);
+    $type = $entity_info['label'];
+  }
   $block = new stdClass();
-  $block->title = check_plain($entity_info['view modes'][$view_mode]['label']);
-  $block->content = t('@mode for @type', array('@mode' => $block->title, '@type' => $entity_info['label']));
+  $block->title = $title;
+  $block->content = t('@mode for @type', array('@mode' => $block->title, '@type' => $type));
   return $block;
 }

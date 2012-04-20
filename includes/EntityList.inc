@@ -8,13 +8,13 @@ class EntityList {
 
   public $handler_config = array();
 
+  public $arguments = array();
+
+  public $entities = array();
+
   protected $handler = NULL;
 
-  protected $arguments = array();
-
   protected $executed = FALSE;
-
-  protected $entities = array();
 
   /**
    * Load method that loads the configuration into the object itself.
@@ -51,15 +51,24 @@ class EntityList {
     return $this->handler->getArguments();
   }
 
-  public function getCacheTags() {
+  /**
+   * @todo Set tags with arguments for better granularity.
+   */
+  public function getCacheTags($execute = FALSE) {
     $tags = $this->handler->getCacheTags();
     // Always add the list it self as a cache tag.
-    // TODO: Also add tags with arguments to provide better granularity.
     $tags['entitylist'][] = $this->name;
+    if ($execute) {
+      $entity_type = $this->entityType();
+      $entities = $this->execute();
+      foreach ($entities as $id => $entity) {
+        $tags[$entity_type][] = $id;
+      }
+    }
     return $tags;
   }
 
-  protected function execute() {
+  public function execute() {
     if (!$this->executed) {
       $indexed_entities = array();
       $entities = $this->handler->execute();
@@ -67,11 +76,11 @@ class EntityList {
         foreach ($entities as $entity) {
           $indexed_entities[] = $entity;
         }
-        $this->setEntities($indexed_entities);
+        $this->entities = $indexed_entities;
       }
       $this->executed = TRUE;
     }
-    return $this;
+    return $this->entities;
   }
 
   protected function setEntities($result) {

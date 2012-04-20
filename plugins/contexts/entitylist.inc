@@ -1,10 +1,24 @@
 <?php
+/**
+ * @file
+ * Entity list context.
+ */
 
 $plugin = array(
-  'title' => t('List'),
-  'description' => t('Create a list context.'),
+  'title' => t('Entity list'),
+  'description' => t('Adds an entity list to the page context.'),
   'context' => 'entitylist_ctools_context',
   'keyword' => 'list',
+  'defaults' => array(
+    'mustache' => array(
+      'inline' => FALSE,
+      'ajax' => array(
+        'endpoint' => '',
+        'initial' => FALSE,
+        'interval' => 0,
+      ),
+    ),
+  ),
   'context name' => 'entitylist',
   'convert list' => array(
     'name' => t('Name'),
@@ -16,13 +30,13 @@ $plugin = array(
   'get children' => 'entitylist_ctools_context_get_children',
 );
 
-function entitylist_ctools_context_get_child($plugin, $parent, $child) {
+function entitylist_ctools_context_get_child($plugin, $parent, $child, $foo = NULL) {
   $list = entitylist_list_load($child);
-  $child = entitylist_build_context_info($list, $parent, FALSE);
-  return $child;
+  $info = entitylist_ctools_context_info($list, $parent, FALSE);
+  return array_merge($plugin, $info);
 }
 
-function entitylist_ctools_context_get_children($plugin, $parent) {
+function entitylist_ctools_context_get_children($plugin, $parent, $foo = NULL) {
   $children = array(
     'entitylist' => $plugin,
   );
@@ -30,21 +44,21 @@ function entitylist_ctools_context_get_children($plugin, $parent) {
 
   $lists = entitylist_list_load_all();
   foreach ($lists as $list) {
-    $info = entitylist_build_context_info($list, $parent, FALSE);
+    $info = entitylist_ctools_context_info($list, $parent, FALSE);
     if (!empty($info)) {
-      $children[$info['name']] = $info;
+      $children[$info['name']] = array_merge($plugin, $info);
     }
   }
   return $children;
 }
 
 function entitylist_ctools_context($empty, $data = NULL, $conf = FALSE) {
+  if ($empty) {
+    return ctools_context_create_empty('enititylist');
+  }
+
   $context = new ctools_context('entitylist');
   $context->plugin = 'entitylist';
-
-  if ($empty) {
-    return $context;
-  }
 
   // This is a configured context, i.e. one without other required
   // arguments (contexts).
@@ -55,17 +69,8 @@ function entitylist_ctools_context($empty, $data = NULL, $conf = FALSE) {
     }
   }
 
-  // $data is already the list itself. It probably came from a relationship
-  // where it already was loaded and configured with some arguments (contexts).
-  if (is_object($data)) {
-    // We don't want to pass along the whole list object.
-    $context->data = array(
-      'name' => $data->name,
-      'arguments' => $data->getArguments(),
-    );
-  }
-
-  if (!empty($context->data)) {
+  if (!empty($data)) {
+    $context->data = $data;
     $context->title = $data->title;
     // TODO: Make sure that this gives enough granularity when setting up
     // caching per context. Probably a lot of cache lifetime to save right here.

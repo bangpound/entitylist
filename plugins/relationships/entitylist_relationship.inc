@@ -10,7 +10,7 @@ $plugin = array(
 
 function entitylist_ctools_relationship_get_child($plugin, $parent, $child) {
   $list = entitylist_list_load($child);
-  $child = entitylist_build_context_info($list, $parent, TRUE);
+  $child = entitylist_ctools_context_info($list, $parent, TRUE);
   return $child;
 }
 
@@ -18,7 +18,7 @@ function entitylist_ctools_relationship_get_children($plugin, $parent) {
   $children = array();
   $lists = entitylist_list_load_all();
   foreach ($lists as $list) {
-    $info = entitylist_build_context_info($list, $parent, TRUE);
+    $info = entitylist_ctools_context_info($list, $parent, TRUE);
     if (!empty($info)) {
       $children[$info['name']] = $info;
     }
@@ -33,7 +33,7 @@ function entitylist_ctools_relationship_context($contexts, $conf) {
   }
 
   if (isset($conf['name'])) {
-    list($plugin, $name) = explode(':', $conf['name']);
+    list($parent, $name) = explode(':', $conf['name']);
     $list = entitylist_list_load($name);
     $argument_input = $list->argumentInput();
 

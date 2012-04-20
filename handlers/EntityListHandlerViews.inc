@@ -12,7 +12,7 @@ class EntityListHandlerViews implements EntityListHandler {
 
   public function __construct(Array $config = array()) {
     $defaults = array(
-      'name' => '',
+      'view' => '',
     );
     $this->config = array_merge($defaults, $config);
   }
@@ -23,19 +23,30 @@ class EntityListHandlerViews implements EntityListHandler {
    * passed around.
    */
   protected function getView() {
-    if (empty($this->view) && !empty($this->config['name'])) {
-      list($name, $display) = explode(':', $this->config['name']);
+    if (!empty($this->config['view'])) {
+      list($name, $display) = explode(':', $this->config['view']);
       $view = views_get_view($name);
       if (!empty($view)) {
         $view->set_display($display);
+        return $view;
       }
     }
-    return $view;
+    return FALSE;
+  }
+
+  protected function getViewOptions() {
+    $infos = views_get_applicable_views('returns context');
+    $options = array();
+    foreach ($infos as $info) {
+      $view = $info[0];
+      $display_id = $info[1];
+      $options[$view->name . ':' . $display_id] = $view->human_name . ' (' . $view->display_handler->display->display_title . ')';
+    }
+    return $options;
   }
 
   public function entityType() {
-    if ($this->entityType === NULL) {
-      $view = $this->getView();
+    if ($this->entityType === NULL && $view = $this->getView()) {
       $table = views_fetch_data($view->base_table);
       if (!isset($table['table']['entity type'])) {
         throw new EntityListException(t('Could not determine entity type of view @view', array('@view' => $view->name)));
@@ -46,8 +57,7 @@ class EntityListHandlerViews implements EntityListHandler {
   }
 
   public function argumentInput() {
-    $view = $this->getView();
-    if (empty($this->argumentInput) && !empty($view)) {
+    if (empty($this->argumentInput) && $view = $this->getView()) {
       // This code is pretty much taken directly from views_content.module.
       // TODO: Simplify when we've got our own stripped down Views display type.
       $arguments = $view->display_handler->get_argument_input();
@@ -81,14 +91,19 @@ class EntityListHandlerViews implements EntityListHandler {
     return $this->arguments;
   }
 
+  /**
+   * @todo Set tags with arguments for better granularity.
+   */
   public function getCacheTags() {
-    // TODO: Set tag with arguments, to provide even better granularity.
-    return array('views' => array($this->config['name']));
+    list($name, $display) = explode(':', $this->config['view']);
+    return array('views' => array($name, "$name:$display"));
   }
 
   public function execute() {
     $arguments = $this->getArguments();
-    $view = $this->getView();
+    if (!$view = $this->getView()) {
+      return array();
+    }
     $view->set_arguments($arguments);
     $view->execute();
     $entities = $view->query->get_result_entities($view->result);
@@ -104,25 +119,18 @@ class EntityListHandlerViews implements EntityListHandler {
       return FALSE;
     }
 
-    list($name, $display) = explode(':', $this->config['name']);
+    list($name, $display) = explode(':', $this->config['view']);
     return 'admin/structure/views/view/' . check_plain($name) . '/edit/' . $display;
   }
 
   public function configForm(&$form_state) {
     $form = array();
-    $infos = views_get_applicable_views('returns context');
-    $options = array();
-    foreach ($infos as $info) {
-      $view = $info[0];
-      $display_id = $info[1];
-      $options[check_plain($view->name) . ':' . $display_id] = check_plain($view->human_name) . ': ' . check_plain($view->display_handler->display->display_title);
-    }
-    $form['name'] = array(
+    $form['view'] = array(
       '#type' => 'select',
       '#title' => t('View'),
       '#description' => t('Select which view to use for this handler. Only view display types that returns a context will work.'),
-      '#options' => $options,
-      '#default_value' => array($this->config['name']),
+      '#options' => $this->getViewOptions(),
+      '#default_value' => array($this->config['view']),
     );
     return $form;
   }

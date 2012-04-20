@@ -42,7 +42,7 @@ class EntityListHandlerEntityReference implements EntityListHandler {
     $arguments = $this->getArguments();
     $entity = $arguments[0]->data;
     // TODO: Make this more dynamic when the argument is configurable.
-    return array($this->entityType() => $entity->nid);
+    return array($this->entityType() => array($entity->nid));
   }
 
   public function execute() {

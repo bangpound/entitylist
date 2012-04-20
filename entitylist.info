@@ -6,6 +6,11 @@ package = "Entity List"
 files[] = includes/EntityList.inc
 files[] = includes/EntityListHandler.inc
 
+files[] = handlers/EntityListHandlerApachesolr.inc
+files[] = handlers/EntityListHandlerDraggableViews.inc
+files[] = handlers/EntityListHandlerDraggableViewsNative.inc
 files[] = handlers/EntityListHandlerEFQ.inc
-files[] = handlers/EntityListHandlerViews.inc
 files[] = handlers/EntityListHandlerEntityReference.inc
+files[] = handlers/EntityListHandlerNodeQueue.inc
+files[] = handlers/EntityListHandlerSearchApi.inc
+files[] = handlers/EntityListHandlerViews.inc
