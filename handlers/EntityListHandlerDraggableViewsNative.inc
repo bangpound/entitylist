@@ -2,11 +2,7 @@
 
 class EntityListHandlerDraggableViewsNative extends EntityListHandlerDraggableViews {
 
-  protected function getViewOptions() {
-    return draggableviews_get_views_options();
-  }
-
-  function argumentInput() {
+  function requiredArguments() {
     return array();
   }
 

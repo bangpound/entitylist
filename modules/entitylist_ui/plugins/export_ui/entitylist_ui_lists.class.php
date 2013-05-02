@@ -28,6 +28,13 @@ class entitylist_ui_lists extends ctools_export_ui {
       '#default_value' => $item->description,
     );
 
+    $form['content_type'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Create CTools content type plugins for each entity in this list'),
+      '#description' => t('This will create a CTools content type plugin for each entity in this panel that you freely can place in Panels. %warning', array('%warning' => t('Warning: Only check this if you know what you are doing.'))),
+      '#default_value' => $item->content_type,
+    );
+
     // Handlers.
     $handlers = entitylist_get_handler_plugins();
     $options = array();
@@ -58,6 +65,7 @@ class entitylist_ui_lists extends ctools_export_ui {
     $item->title = $form_state['values']['title'];
     $item->description = $form_state['values']['description'];
     $item->handler_plugin = $form_state['values']['handler_plugin'];
+    $item->content_type = $form_state['values']['content_type'];
   }
 
   function edit_form_settings(&$form, &$form_state) {

@@ -1,6 +1,6 @@
 <?php
 
-class EntityListHandlerEFQ implements EntityListHandler {
+class EntityListHandlerSQL implements EntityListHandler {
 
   protected $config = array();
 
@@ -10,19 +10,25 @@ class EntityListHandlerEFQ implements EntityListHandler {
 
   protected $range = array('offset' => NULL, 'limit' => NULL);
 
+  protected $subhandler = NULL;
+
+  protected $query = NULL;
+
   public function __construct(Array $config = array()) {
     $defaults = array(
       'class_name' => '',
     );
     $this->config = array_merge($defaults, $config);
+    $class_name = $this->config['class_name'];
+    $this->subhandler = new $class_name($this->config);
   }
 
   public function entityType() {
-    return call_user_func_array(array($this->config['class'], 'entityType'));
+    return $this->subhandler->entityType();
   }
 
   public function requiredArguments() {
-    return call_user_func_array(array($this->config['class'], 'requiredArguments'));
+    return $this->subhandler->requiredArguments();
   }
 
   public function setArguments(Array $arguments = array()) {
@@ -56,7 +62,10 @@ class EntityListHandlerEFQ implements EntityListHandler {
   }
 
   public function buildQuery() {
-
+    if (!$this->query) {
+      $arguments = $this->getArguments();
+      $this->query = $this->subhandler->buildQuery($arguments);
+    }
   }
 
   public function count() {
@@ -64,11 +73,24 @@ class EntityListHandlerEFQ implements EntityListHandler {
   }
 
   public function execute() {
-    $arguments = $this->getArguments();
-    $class_name = $this->config['class_name'];
-    // TODO: Check that $class_name implements EntityListEFQ.
-    $query = new $class_name($this->config, $arguments);
-    return $query->execute();
+    // Set the range.
+    $range = $this->getRange();
+    if (!is_null($range['offset']) && !is_null($range['limit'])) {
+      $this->query->range($range['offset'], $range['limit']);
+    }
+    // Execute the query.
+    $result = $this->query->execute();
+
+    // Fetch some important entity info.
+    $entity_info = entity_get_info($this->subhandler->entityType());
+    $id_key = $entity_info['entity keys']['id'];
+    // Build the result array of entities.
+    $entities = array();
+    foreach ($result as $row) {
+      $entity = entity_load($this->subhandler->entityType(), array($row->{$id_key}));
+      $entities[] = reset($entity);
+    }
+    return $entities;
   }
 
   public function cacheTags() {
@@ -83,16 +105,19 @@ class EntityListHandlerEFQ implements EntityListHandler {
     $form['class_name'] = array(
       '#type' => 'textfield',
       '#title' => t('Name of query class'),
-      '#description' => t('Enter the name of the EntitFieldQuery class that represents this list. The class has to be registered in the auto-loading registry and implement the <em>EntityListEFQ</em> interface.'),
+      '#description' => t('Enter the name of the query class that represents this list. The class has to be registered in the auto-loading registry and implement the <em>EntityListSQL</em> interface.'),
       '#default_value' => $this->config['class_name'],
+      '#required' => TRUE,
     );
     return $form;
   }
 }
 
-interface EntityListEFQ {
+interface EntityListSQL {
 
-  public function __construct(Array $config, Array $arguments = array());
+  public function __construct(Array $config);
+
+  public function buildQuery(Array $arguments = array());
 
   static function entityType();
 

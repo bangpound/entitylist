@@ -12,12 +12,12 @@ $plugin = array(
   'admin title' => 'entitylist_ctools_admin_link_admin_title',
   'admin info' => 'entitylist_ctools_admin_link_admin_info',
   'render callback' => 'entitylist_ctools_admin_link_render',
-  'edit form' => 'entitylist_ctools_admin_link_form',
+  'edit form' => 'entitylist_ctools_admin_link_edit_form',
 );
 
 function entitylist_ctools_admin_link_render($subtype, $conf, $panel_args, $context) {
   // Get the list.
-  $list = $context->data;
+  $list = entitylist_list_load_from_context($context);
   $path = $list->adminPath();
 
   // This means that the user doesn't have access.
@@ -42,7 +42,7 @@ function entitylist_ctools_admin_link_admin_info($subtype, $conf, $context) {
   return $block;
 }
 
-function entitylist_ctools_admin_link_form($form, &$form_state) {
+function entitylist_ctools_admin_link_edit_form($form, &$form_state) {
   $form['text'] = array(
     '#type' => 'textfield',
     '#title' => t('Link text'),
@@ -57,7 +57,7 @@ function entitylist_ctools_admin_link_form($form, &$form_state) {
   return $form;
 }
 
-function entitylist_ctools_admin_link_form_submit($form, &$form_state) {
+function entitylist_ctools_admin_link_edit_form_submit($form, &$form_state) {
   foreach (array('text', 'destination') as $key) {
     $form_state['conf'][$key] = $form_state['values'][$key];
   }

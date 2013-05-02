@@ -10,13 +10,11 @@ $plugin = array(
   'context' => 'entitylist_ctools_context',
   'keyword' => 'list',
   'defaults' => array(
-    'mustache' => array(
-      'inline' => FALSE,
-      'ajax' => array(
-        'endpoint' => '',
-        'initial' => FALSE,
-        'interval' => 0,
-      ),
+    'use_pager' => FALSE,
+    'pager_id' => 0,
+    'range' => array(
+      'offset' => 0,
+      'limit' => 10,
     ),
   ),
   'context name' => 'entitylist',
@@ -26,17 +24,19 @@ $plugin = array(
     'description' => t('Description'),
   ),
   'convert' => 'entitylist_ctools_context_convert',
+  'edit form' => 'entitylist_ctools_context_edit_form',
   'get child' => 'entitylist_ctools_context_get_child',
   'get children' => 'entitylist_ctools_context_get_children',
 );
 
-function entitylist_ctools_context_get_child($plugin, $parent, $child, $foo = NULL) {
+function entitylist_ctools_context_get_child($plugin, $parent, $child) {
   $list = entitylist_list_load($child);
   $info = entitylist_ctools_context_info($list, $parent, FALSE);
-  return array_merge($plugin, $info);
+  //return array_merge($plugin, $info);
+  return $info;
 }
 
-function entitylist_ctools_context_get_children($plugin, $parent, $foo = NULL) {
+function entitylist_ctools_context_get_children($plugin, $parent) {
   $children = array(
     'entitylist' => $plugin,
   );
@@ -46,36 +46,68 @@ function entitylist_ctools_context_get_children($plugin, $parent, $foo = NULL) {
   foreach ($lists as $list) {
     $info = entitylist_ctools_context_info($list, $parent, FALSE);
     if (!empty($info)) {
-      $children[$info['name']] = array_merge($plugin, $info);
+      //$children[$info['name']] = array_merge($plugin, $info);
+      $info['no required context ui'] = TRUE;
+      // TODO: We should probably prefix the key with $parent or something here.
+      $children[$info['name']] = $info;
     }
   }
   return $children;
 }
 
-function entitylist_ctools_context($empty, $data = NULL, $conf = FALSE) {
-  if ($empty) {
-    return ctools_context_create_empty('enititylist');
-  }
-
+function entitylist_ctools_context($empty, $data = NULL, $conf = FALSE, $plugin) {
   $context = new ctools_context('entitylist');
-  $context->plugin = 'entitylist';
+  $context->plugin = $plugin['name'];
+
+  if ($empty) {
+    return $context;
+  }
 
   // This is a configured context, i.e. one without other required
   // arguments (contexts).
   if ($conf) {
     if (is_array($data) && isset($data['name'])) {
       list($plugin, $name) = explode(':', $data['name']);
-      $data = entitylist_list_load($name);
+      $range = $data['range'];
+      $list = entitylist_list_load($name);
+      // Configure the pager.
+      if (!empty($data['use_pager']) && isset($data['pager_id'])) {
+        $context->use_pager = TRUE;
+        $context->pager_id = (int)$data['pager_id'];
+        // Only configure the pager once.
+        if (!$list->getPager()) {
+          $list->setPager($range['limit'], $data['pager_id']);
+        }
+      }
+      // Configure the list with given range.
+      else {
+        $list->setRange($range['offset'], $range['limit']);
+      }
     }
   }
+  else {
+    $list = $data;
+  }
 
-  if (!empty($data)) {
-    $context->data = $data;
-    $context->title = $data->title;
+  if (!empty($list)) {
+    $context->data = $list;
+    $context->title = $list->title;
     // TODO: Make sure that this gives enough granularity when setting up
     // caching per context. Probably a lot of cache lifetime to save right here.
-    $context->argument = $data->name;
+    $context->argument = $list->name;
+    // @see entitylist_list_load_from_context().
+    $context->setArguments = array();
+    $context->restrictions['name'] = array($list->name);
     return $context;
+  }
+}
+
+function entitylist_ctools_context_edit_form_submit($form, &$form_state) {
+  $conf = &$form_state['conf'];
+  foreach (array('use_pager', 'pager_id', 'range') as $key) {
+    if (isset($form_state['values'][$key])) {
+      $conf[$key] = $form_state['values'][$key];
+    }
   }
 }
 

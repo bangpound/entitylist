@@ -6,6 +6,10 @@ class EntityListHandlerEntityReference implements EntityListHandler {
 
   protected $arguments = array();
 
+  protected $parameters = array();
+
+  protected $range = array('offset' => NULL, 'limit' => NULL);
+
   public function __construct(Array $config = array()) {
     $defaults = array(
       'entity_info' => '',
@@ -19,7 +23,7 @@ class EntityListHandlerEntityReference implements EntityListHandler {
     return 'node';
   }
 
-  public function argumentInput() {
+  public function requiredArguments() {
     // TODO: Entity type should be from config form.
     return array(
       'entity:node' => array(
@@ -38,11 +42,33 @@ class EntityListHandlerEntityReference implements EntityListHandler {
     return $this->arguments;
   }
 
-  public function getCacheTags() {
-    $arguments = $this->getArguments();
-    $entity = $arguments[0]->data;
-    // TODO: Make this more dynamic when the argument is configurable.
-    return array($this->entityType() => array($entity->nid));
+  public function setParameters(Array $parameters = array()) {
+    $this->parameters = $parameters;
+    return $this;
+  }
+
+  public function getParameters() {
+    return $this->parameters;
+  }
+
+  public function setRange($offset = NULL, $limit = NULL) {
+    $this->range = array(
+      'offset' => $offset,
+      'limit' => $limit,
+    );
+    return $this;
+  }
+
+  public function getRange() {
+    return $this->range;
+  }
+
+  public function buildQuery() {
+
+  }
+
+  public function count() {
+    return FALSE;
   }
 
   public function execute() {
@@ -59,6 +85,13 @@ class EntityListHandlerEntityReference implements EntityListHandler {
     if ($entity_ids) {
       return entity_load($entity_type, $entity_ids);
     }
+  }
+
+  public function cacheTags() {
+    $arguments = $this->getArguments();
+    $entity = $arguments[0]->data;
+    // TODO: Make this more dynamic when the argument is configurable.
+    return array($this->entityType() => array($entity->nid));
   }
 
   public function adminPath() {

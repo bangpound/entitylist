@@ -50,6 +50,12 @@ function entitylist_schema() {
         'size' => 'medium',
         'not null' => TRUE,
       ),
+      'content_type' => array(
+        'description' => 'Decides if to create CTools content type plugins for all entities in this list.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'handler_plugin' => array(
         'description' => 'Handler used for this list.',
         'type' => 'varchar',

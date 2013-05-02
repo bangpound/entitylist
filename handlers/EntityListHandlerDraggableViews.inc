@@ -2,17 +2,21 @@
 
 class EntityListHandlerDraggableViews extends EntityListHandlerViews {
 
+  protected function viewOptions() {
+    return _draggableviews_get_views_options();
+  }
+
   /**
    * @todo Set tags with arguments for better granularity.
    */
-  public function getCacheTags() {
+  public function cacheTags() {
     $tags = array();
-    if ($view = $this->getView()) {
+    if ($view = $this->view()) {
       list($name, $display) = explode(':', $this->config['view']);
       $tags = array('views' => array($name, "$name:$display"));
 
       // Add tags for this view's order view as well.
-      if ($order_view = draggableviews_get_draggable_view($view)) {
+      if ($order_view = _draggableviews_get_order_view_display($view)) {
         list($order_name, $order_display) = explode(':', $order_view);
         $tags['views'][] = $order_name;
         $tags['views'][] = "$order_name:$order_display";
@@ -22,10 +26,10 @@ class EntityListHandlerDraggableViews extends EntityListHandlerViews {
   }
 
   public function adminPath() {
-    if ($view = $this->getView()) {
+    if ($view = $this->view()) {
       list($name, $display) = explode(':', $this->config['view']);
       $view->build($display);
-      if ($path = draggableviews_get_draggable_path($view, TRUE)) {
+      if ($path = _draggableviews_get_order_path($view, TRUE)) {
         return $path;
       }
     }

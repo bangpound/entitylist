@@ -6,6 +6,10 @@ class EntityListHandlerNodeQueue implements EntityListHandler {
 
   protected $arguments = array();
 
+  protected $parameters = array();
+
+  protected $range = array('offset' => NULL, 'limit' => NULL);
+
   protected $qid = NULL;
 
   function __construct(Array $config = array()) {
@@ -26,7 +30,7 @@ class EntityListHandlerNodeQueue implements EntityListHandler {
     return 'node';
   }
 
-  public function argumentInput() {
+  public function requiredArguments() {
     return array(
       'entity:taxonomy_term.tid' => array(
         'label' => 'Subqueue reference',
@@ -44,8 +48,33 @@ class EntityListHandlerNodeQueue implements EntityListHandler {
     return $this->arguments;
   }
 
-  public function getCacheTags() {
-    return array('nodequeue' => array($this->config['name']));
+  public function setParameters(Array $parameters = array()) {
+    $this->parameters = $parameters;
+    return $this;
+  }
+
+  public function getParameters() {
+    return $this->parameters;
+  }
+
+  public function setRange($offset = NULL, $limit = NULL) {
+    $this->range = array(
+      'offset' => $offset,
+      'limit' => $limit,
+    );
+    return $this;
+  }
+
+  public function getRange() {
+    return $this->range;
+  }
+
+  public function buildQuery() {
+
+  }
+
+  public function count() {
+    return FALSE;
   }
 
   public function execute() {
@@ -81,6 +110,10 @@ class EntityListHandlerNodeQueue implements EntityListHandler {
     }
 
     return entity_load('node', $nids);
+  }
+
+  public function cacheTags() {
+    return array('nodequeue' => array($this->config['name']));
   }
 
   public function adminPath() {

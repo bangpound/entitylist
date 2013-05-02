@@ -6,9 +6,13 @@ class EntityListHandlerViews implements EntityListHandler {
 
   protected $entityType = NULL;
 
-  protected $argumentInput = array();
+  protected $requiredArguments = array();
 
   protected $arguments = array();
+
+  protected $parameters = array();
+
+  protected $range = array('offset' => NULL, 'limit' => NULL);
 
   public function __construct(Array $config = array()) {
     $defaults = array(
@@ -21,8 +25,11 @@ class EntityListHandlerViews implements EntityListHandler {
    * Helper method to return the view this handler is dealing with. We can't
    * save it in the object, because of wierdness (?) when a list context is
    * passed around.
+   *
+   * @todo
+   *   Fix so that we can store one view object and pass it by reference.
    */
-  protected function getView() {
+  protected function view() {
     if (!empty($this->config['view'])) {
       list($name, $display) = explode(':', $this->config['view']);
       $view = views_get_view($name);
@@ -34,7 +41,7 @@ class EntityListHandlerViews implements EntityListHandler {
     return FALSE;
   }
 
-  protected function getViewOptions() {
+  protected function viewOptions() {
     $infos = views_get_applicable_views('returns context');
     $options = array();
     foreach ($infos as $info) {
@@ -46,7 +53,7 @@ class EntityListHandlerViews implements EntityListHandler {
   }
 
   public function entityType() {
-    if ($this->entityType === NULL && $view = $this->getView()) {
+    if ($this->entityType === NULL && $view = $this->view()) {
       $table = views_fetch_data($view->base_table);
       if (!isset($table['table']['entity type'])) {
         throw new EntityListException(t('Could not determine entity type of view @view', array('@view' => $view->name)));
@@ -56,10 +63,14 @@ class EntityListHandlerViews implements EntityListHandler {
     return $this->entityType;
   }
 
-  public function argumentInput() {
-    if (empty($this->argumentInput) && $view = $this->getView()) {
+  public function requiredArguments() {
+    if (empty($this->requiredArguments) && $view = $this->view()) {
+      // Check that this view can handle CTools contexts and argument input.
+      $plugin = views_fetch_plugin_data('display', $view->display[$view->current_display]->display_plugin);
+      if (empty($plugin['returns context'])) {
+        return array();
+      }
       // This code is pretty much taken directly from views_content.module.
-      // TODO: Simplify when we've got our own stripped down Views display type.
       $arguments = $view->display_handler->get_argument_input();
       ctools_include('views');
       $contexts = array();
@@ -72,14 +83,14 @@ class EntityListHandlerViews implements EntityListHandler {
           elseif ($entity = entity_get_info($context)) {
             $context = 'entity:' . $context;
           }
-          $this->argumentInput[$context . '.' . $converter] = array(
+          $this->requiredArguments[$context . '.' . $converter] = array(
             'label' => $argument['name'] ? $argument['name'] : '',
             'required' => empty($argument['context_optional']) ? TRUE : FALSE,
           );
         }
       }
     }
-    return $this->argumentInput;
+    return $this->requiredArguments;
   }
 
   public function setArguments(Array $arguments = array()) {
@@ -91,22 +102,58 @@ class EntityListHandlerViews implements EntityListHandler {
     return $this->arguments;
   }
 
-  /**
-   * @todo Set tags with arguments for better granularity.
-   */
-  public function getCacheTags() {
-    list($name, $display) = explode(':', $this->config['view']);
-    return array('views' => array($name, "$name:$display"));
+  public function setParameters(Array $parameters = array()) {
+    $this->parameters = $parameters;
+    return $this;
+  }
+
+  public function getParameters() {
+    return $this->parameters;
+  }
+
+  public function setRange($offset = NULL, $limit = NULL) {
+    $this->range = array(
+      'offset' => $offset,
+      'limit' => $limit,
+    );
+    return $this;
+  }
+
+  public function getRange() {
+    return $this->range;
+  }
+
+  public function buildQuery() {
+    if (!$this->view = $this->view()) {
+      return;
+    }
+    $arguments = $this->getArguments();
+    $this->view->set_arguments($arguments);
+    $this->view->build();
+  }
+
+  public function count() {
+    if (empty($this->view)) {
+      return 0;
+    }
+    $this->view->get_total_rows = TRUE;
+    $this->view->query->execute($this->view);
+    return $this->view->query->pager->get_total_items();
   }
 
   public function execute() {
-    $arguments = $this->getArguments();
-    if (!$view = $this->getView()) {
+    if (empty($this->view)) {
       return array();
     }
-    $view->set_arguments($arguments);
-    $view->execute();
-    $entities = $view->query->get_result_entities($view->result);
+    $range = $this->getRange();
+    if (!empty($range['offset'])) {
+      $this->view->query->offset = $range['offset'];
+    }
+    if (!empty($range['limit'])) {
+      $this->view->query->limit = $range['limit'];
+    }
+    $this->view->execute();
+    $entities = $this->view->query->get_result_entities($this->view->result);
 
     if (empty($entities[1])) {
       return array();
@@ -114,11 +161,18 @@ class EntityListHandlerViews implements EntityListHandler {
     return $entities[1];
   }
 
+  /**
+   * @todo Set tags with arguments for better granularity.
+   */
+  public function cacheTags() {
+    list($name, $display) = explode(':', $this->config['view']);
+    return array('views' => array($name, "$name:$display"));
+  }
+
   public function adminPath() {
     if (!user_access('administer views')) {
       return FALSE;
     }
-
     list($name, $display) = explode(':', $this->config['view']);
     return 'admin/structure/views/view/' . check_plain($name) . '/edit/' . $display;
   }
@@ -129,7 +183,7 @@ class EntityListHandlerViews implements EntityListHandler {
       '#type' => 'select',
       '#title' => t('View'),
       '#description' => t('Select which view to use for this handler. Only view display types that returns a context will work.'),
-      '#options' => $this->getViewOptions(),
+      '#options' => $this->viewOptions(),
       '#default_value' => array($this->config['view']),
     );
     return $form;

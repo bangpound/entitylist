@@ -11,6 +11,11 @@ $plugin = array(
     'menu description' => 'Manage the abstraction of content lists.',
   ),
 
+  'export' => array(
+    'admin_title' => 'title',
+    'admin_description' => 'description',
+  ),
+
   'title singular' => t('list'),
   'title singular proper' => t('List'),
   'title plural' => t('lists'),

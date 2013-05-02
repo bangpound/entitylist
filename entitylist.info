@@ -13,4 +13,5 @@ files[] = handlers/EntityListHandlerEFQ.inc
 files[] = handlers/EntityListHandlerEntityReference.inc
 files[] = handlers/EntityListHandlerNodeQueue.inc
 files[] = handlers/EntityListHandlerSearchApi.inc
+files[] = handlers/EntityListHandlerSQL.inc
 files[] = handlers/EntityListHandlerViews.inc

@@ -6,6 +6,16 @@ class EntityListHandlerSearchApi implements EntityListHandler {
 
   protected $arguments = array();
 
+  protected $parameters = array();
+
+  protected $range = array('offset' => 0, 'limit' => NULL);
+
+  protected $query = NULL;
+
+  protected $results = NULL;
+
+  protected $entities = array();
+
   public function __construct(Array $config = array()) {
     $defaults = array(
       'id' => NULL,
@@ -22,7 +32,7 @@ class EntityListHandlerSearchApi implements EntityListHandler {
     return 'node';
   }
 
-  public function argumentInput() {
+  public function requiredArguments() {
     return array(
       'string' => array(
         'label' => 'Keywords',
@@ -40,44 +50,92 @@ class EntityListHandlerSearchApi implements EntityListHandler {
     return $this->arguments;
   }
 
-  public function getCacheTags() {
-    return array();
+  public function setParameters(Array $parameters = array()) {
+    $this->parameters = $parameters;
+    return $this;
+  }
+
+  public function getParameters() {
+    return $this->parameters;
+  }
+
+  public function setRange($offset = NULL, $limit = NULL) {
+    $this->range = array(
+      'offset' => $offset,
+      'limit' => $limit,
+    );
+    return $this;
+  }
+
+  public function getRange() {
+    return $this->range;
+  }
+
+  public function buildQuery() {
+    // This handler doesn't deal with filter options because it's too complex
+    // and Facet API is doing a good job providing that context through GET
+    // parameters. We will fetch them after the query is executed instead.
+    // However, we allow keywords and sort, because that's easy.
+    $options = array();
+    $arguments = $this->getArguments();
+
+    // We only have one argument, so the first one is the keywords.
+    $keys = reset($arguments);
+    // Sort config.
+    if (!empty($this->config['sort']['field'])) {
+      // At this point, we only support sorting on one field at the time. We'd
+      // have to implement some AJAX magic in the config form to support
+      // multiple fields.
+      $options['sort'] = array(
+        $this->config['sort']['field'] => $this->config['sort']['order'],
+      );
+    }
+    // Build the base query.
+    $this->query = search_api_query($this->config['id'], $options)->keys($keys);
+  }
+
+  public function count() {
+    // Execute the full query and fetch the count information.
+    // Also make the result available so that we don't need to execute in
+    // self::execute() aswell.
+    $this->results = $this->query->execute();
+    if (isset($this->results['result count'])) {
+      return $this->results['result count'];
+    }
+    return 0;
   }
 
   public function execute() {
-    try {
-      // This handler doesn't deal with filter options because it's too complex
-      // and Facet API is doing a good job providing that context through GET
-      // parameters. So that will be taken care of further down the stack
-      // inside search_api_query(). It actually works.
-      // However, we allow keywords and sort, because that's easy.
-      $options = array();
-      $arguments = $this->getArguments();
-      // We only have one argument, so the first one is the keywords.
-      $keys = reset($arguments);
-      // Sort config.
-      if (!empty($this->config['sort']['field'])) {
-        // At this point, we only support sorting on one field at the time. We'd
-        // have to implement some AJAX magic in the config form to support
-        // multiple fields.
-        $options['sort'] = array(
-          $this->config['sort']['field'] => $this->config['sort']['order'],
-        );
-      }
-      // Execute the query and load the entities.
-      $results = search_api_query($this->config['id'], $options)
-        ->keys($keys)
-        ->execute();
-      $ids = array();
-      foreach ($results['results'] as $id => $result) {
+    // The query might already have been executed in self::count().
+    if ($this->results === NULL) {
+      $this->results = $this->query->execute();
+    }
+    // Fetch the searcher, it's adapter and it's processor. We do this to fetch
+    // all parameters that were injected through GET, that we didn't care of
+    // in self::buildQuery().
+    $searchers = facetapi_get_active_searchers();
+    $searcher = reset($searchers);
+    $adapter = facetapi_adapter_load($searcher);
+    $processor = $adapter->getUrlProcessor();
+    $this->setParameters($processor->getParams());
+
+    $ids = array();
+    // Range conditions are not done on the query itself since search queries
+    // are expected to return information about the total number of results
+    // etc. That's why the full query is executed. So offset and limit are
+    // done on output here. However, we only load the entites we need.
+    $i = 0;
+    $ii = 0;
+    $range = $this->getRange();
+    foreach ($this->results['results'] as $id => $result) {
+      if (entitylist_count($i, $ii, $range)) {
         $ids[] = $result['id'];
       }
-      $entities = entity_load($this->entityType(), $ids);
-      return $entities;
     }
-    catch (Exception $e) {
-      watchdog_exception('entitylist', $e);
-    }
+    return entity_load($this->entityType(), $ids);
+  }
+
+  public function cacheTags() {
     return array();
   }
 

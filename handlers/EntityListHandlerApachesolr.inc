@@ -4,7 +4,13 @@ class EntityListHandlerApachesolr implements EntityListHandler {
 
   protected $config = array();
 
+  protected $searchArguments = array();
+
   protected $arguments = array();
+
+  protected $parameters = array();
+
+  protected $range = array('offset' => NULL, 'limit' => NULL);
 
   public function __construct(Array $config = array()) {
     $defaults = array(
@@ -13,11 +19,11 @@ class EntityListHandlerApachesolr implements EntityListHandler {
     $this->config = array_merge($defaults, $config);
   }
 
-  protected function getEnvironment() {
+  protected function searchEnvironment() {
     return apachesolr_get_solr($this->config['env_id']);
   }
 
-  protected function getSearchArguments() {
+  protected function searchArguments() {
     if (empty($this->searchArguments)) {
       $arguments = $this->getArguments();
       $keywords = '';
@@ -49,7 +55,7 @@ class EntityListHandlerApachesolr implements EntityListHandler {
         $sort,
         $path,
         pager_find_page(),
-        $this->getEnvironment(),
+        $this->searchEnvironment(),
       );
     }
     return $this->searchArguments;
@@ -59,7 +65,7 @@ class EntityListHandlerApachesolr implements EntityListHandler {
     return 'node';
   }
 
-  public function argumentInput() {
+  public function requiredArguments() {
     return array(
       'string' => array(
         'label' => 'Keywords',
@@ -77,14 +83,39 @@ class EntityListHandlerApachesolr implements EntityListHandler {
     return $this->arguments;
   }
 
-  public function getCacheTags() {
-    return array();
+  public function setParameters(Array $parameters = array()) {
+    $this->parameters = $parameters;
+    return $this;
+  }
+
+  public function getParameters() {
+    return $this->parameters;
+  }
+
+  public function setRange($offset = NULL, $limit = NULL) {
+    $this->range = array(
+      'offset' => $offset,
+      'limit' => $limit,
+    );
+    return $this;
+  }
+
+  public function getRange() {
+    return $this->range;
+  }
+
+  public function buildQuery() {
+
+  }
+
+  public function count() {
+    return FALSE;
   }
 
   public function execute() {
     try {
       $entity_type = $this->entityType();
-      $results = call_user_func_array('apachesolr_search_run', $this->getSearchArguments());
+      $results = call_user_func_array('apachesolr_search_run', $this->searchArguments());
       $ids = array();
       foreach ($results as $result) {
         $ids[] = $result[$entity_type]->entity_id;
@@ -96,6 +127,10 @@ class EntityListHandlerApachesolr implements EntityListHandler {
     catch (Exception $e) {
       watchdog_exception('entitylist', $e);
     }
+    return array();
+  }
+
+  public function cacheTags() {
     return array();
   }
 

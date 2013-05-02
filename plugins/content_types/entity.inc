@@ -8,6 +8,8 @@ $plugin = array(
   'defaults' => array(
     'index' => 1,
     'view_mode' => '',
+    'use_pager' => FALSE,
+    'pager_id' => 0,
   ),
   'admin title' => 'entitylist_ctools_entity_admin_title',
   'admin info' => 'entitylist_ctools_entity_admin_info',
@@ -20,17 +22,17 @@ $plugin = array(
  */
 function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context) {
   // Get the list.
-  $list = $context->data;
+  $list = entitylist_list_load_from_context($context);
+  // The "readable" index starts at 1 while the "real" index starts at 0.
+  $index = $conf['index'] - 1;
+  $entity = $list->entity($index);
 
   $block = new stdClass();
   $block->module  = 'entitylist';
   // Provide integration with the cachetags plugin.
-  $tags = $list->getCacheTags();
+  $tags = $list->cacheTags(TRUE);
   $block->cache_tags = $block->request_tags = $tags;
 
-  // The "readable" index starts at 1 while the "real" index starts at 0.
-  $index = $conf['index'] - 1;
-  $entity = $list->getEntity($index);
   if (empty($entity)) {
     $block->content = '';
     return $block;
@@ -59,6 +61,7 @@ function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context)
   else {
     $block->content = $view_function($entity, $view_mode);
   }
+
   // Also add the entity that is being rendered.
   $block->cache_tags[$entity_type][] = $entity_id;
   $block->request_tags[$entity_type][] = $entity_id;
@@ -109,8 +112,14 @@ function entitylist_ctools_entity_form($form, &$form_state) {
 }
 
 function entitylist_ctools_entity_form_submit($form, &$form_state) {
+  $conf = &$form_state['conf'];
+  // Fetch pager settings from the context.
+  $context = $form_state['contexts'][$conf['context']];
+  $conf['use_pager'] = !empty($context->use_pager) ? $context->use_pager : FALSE;
+  $conf['pager_id'] = isset($context->pager_id) ? (int)$context->pager_id : 0;
+  // Save values from the form.
   foreach (array('index', 'view_mode') as $key) {
-    $form_state['conf'][$key] = $form_state['values'][$key];
+    $conf[$key] = $form_state['values'][$key];
   }
 }
 

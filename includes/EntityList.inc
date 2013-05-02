@@ -8,11 +8,15 @@ class EntityList {
 
   public $handler_config = array();
 
-  public $arguments = array();
-
   public $entities = array();
 
   protected $handler = NULL;
+
+  protected $pager = FALSE;
+
+  protected $pagerInitialized = FALSE;
+
+  protected $built = FALSE;
 
   protected $executed = FALSE;
 
@@ -38,8 +42,8 @@ class EntityList {
     return $this->handler->entityType();
   }
 
-  public function argumentInput() {
-    return $this->handler->argumentInput();
+  public function requiredArguments() {
+    return $this->handler->requiredArguments();
   }
 
   public function setArguments($arguments = array()) {
@@ -51,40 +55,108 @@ class EntityList {
     return $this->handler->getArguments();
   }
 
-  /**
-   * @todo Set tags with arguments for better granularity.
-   */
-  public function getCacheTags($execute = FALSE) {
-    $tags = $this->handler->getCacheTags();
-    // Always add the list it self as a cache tag.
-    $tags['entitylist'][] = $this->name;
-    if ($execute) {
-      $entity_type = $this->entityType();
-      $entities = $this->execute();
-      foreach ($entities as $id => $entity) {
-        $tags[$entity_type][] = $id;
+  public function setParameters($parameters = array()) {
+    $this->handler->setParameter($parameters);
+    return $this;
+  }
+
+  public function getParameters() {
+    return $this->handler->getParameters();
+  }
+
+  public function setRange($offset = NULL, $limit = NULL) {
+    $this->handler->setRange((int)$offset, (int)$limit);
+    return $this;
+  }
+
+  public function getRange() {
+    return $this->handler->getRange();
+  }
+
+  public function setPager($limit = NULL, $element = NULL) {
+    if (!isset($element)) {
+      $element = PagerDefault::$maxElement++;
+    }
+    elseif ($element >= PagerDefault::$maxElement) {
+      PagerDefault::$maxElement = $element + 1;
+    }
+
+    $this->pager = array(
+      'limit' => (int)$limit,
+      'element' => (int)$element,
+    );
+    return $this;
+  }
+
+  function getPager() {
+    return $this->pager;
+  }
+
+  function initializePager() {
+    if (!$this->pagerInitialized) {
+      $pager = $this->getPager();
+      if (!empty($pager['limit'])) {
+        $count = $this->count();
+        if ($count) {
+          $page = pager_find_page($pager['element']);
+          $pager['total'] = $count;
+          $pager['offset'] = $page * $pager['limit'];
+          pager_default_initialize($pager['total'], $pager['limit'], $pager['element']);
+          $this->setRange($pager['offset'], $pager['limit']);
+        }
+        $this->pagerInitialized = TRUE;
       }
     }
-    return $tags;
+  }
+
+  public function buildQuery() {
+    if (!$this->built) {
+      $this->handler->buildQuery();
+      $this->built = TRUE;
+    }
+    return $this;
+  }
+
+  public function count() {
+    $this->buildQuery();
+    return $this->handler->count();
   }
 
   public function execute() {
     if (!$this->executed) {
-      $indexed_entities = array();
+      $this->buildQuery();
+      $this->initializePager();
+
+      // Validate that we have all arguments that we need.
+      // @todo We should probably find a unifom way of passing around arguments
+      // so the handlers.
+      $arguments = $this->getArguments();
+      $required_count = 0;
+      foreach ($this->requiredArguments() as $key => $info) {
+        if ($info['required']) {
+          $required_count++;
+        }
+      }
+      if (count($arguments) < $required_count) {
+        return array();
+      }
+
       $entities = $this->handler->execute();
+      $indexed_entities = array();
       if (!empty($entities)) {
         foreach ($entities as $entity) {
           $indexed_entities[] = $entity;
         }
-        $this->entities = $indexed_entities;
       }
-      $this->executed = TRUE;
+      $this->setEntities($indexed_entities);
     }
-    return $this->entities;
+    return $this->getEntities();
   }
 
-  protected function setEntities($result) {
-    $this->entities = $result;
+  public function setEntities($entities) {
+    $this->entities = $entities;
+    $this->executed = TRUE;
+    return $this;
   }
 
   public function getEntities() {
@@ -94,7 +166,7 @@ class EntityList {
     return $this->entities;
   }
 
-  public function getEntity($index) {
+  public function entity($index) {
     $entities = $this->getEntities();
     if (isset($entities[$index])) {
       return $entities[$index];
@@ -104,11 +176,35 @@ class EntityList {
     }
   }
 
+  public function cacheTags($execute = FALSE) {
+    $tags = $this->handler->cacheTags();
+    // Always add the list it self as a cache tag.
+    // TODO: Add cache tags with the arguments for better granularity.
+    $tags['entitylist'][] = $this->name;
+    if ($execute) {
+      $entities = $this->execute();
+      $entity_type = $this->entityType();
+      foreach ($entities as $id => $entity) {
+        $tags[$entity_type][] = $id;
+      }
+    }
+    return $tags;
+  }
+
+  function uri() {
+    // We need to initialize the pager in order for the URI to reflect the range
+    // given by the pager.
+    $this->initializePager();
+    $query = array_merge($this->getRange(), $this->getParameters());
+    $query = array_merge($query, array('arguments' => $this->getArguments()));
+    return 'entitylist/' . check_plain($this->name) . '?' . drupal_http_build_query($query);
+  }
+
   public function adminPath() {
     return $this->handler->adminPath();
   }
 
-  public function configForm(&$form_state) {
+  public function handlerConfigForm(&$form_state) {
     return $this->handler->configForm($form_state);
   }
 }

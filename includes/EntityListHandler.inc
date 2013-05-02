@@ -17,8 +17,8 @@ interface EntityListHandler {
   public function entityType();
 
   /**
-   * Returns the argument input needed for this list. Mostly used by the CTools
-   * integration to build and set required contexts.
+   * Returns the required arguments needed for this list. Required arguments are
+   * defined as CTools context keys.
    *
    * It should be in the following form:
    * @code
@@ -39,7 +39,7 @@ interface EntityListHandler {
    *
    * @return array
    */
-  public function argumentInput();
+  public function requiredArguments();
 
   /**
    * Setter for the list's arguments.
@@ -56,14 +56,54 @@ interface EntityListHandler {
   public function getArguments();
 
   /**
+   * Setter for the list's arguments.
+   *
+   * @return $this
+   */
+  public function setParameters(Array $parameters = array());
+
+  /**
+   * Getter for the list's parameters.
+   *
+   * @return array
+   */
+  public function getParameters();
+
+  /**
+   * Setter for the list's range.
+   *
+   * @return $this
+   */
+  public function setRange($offset = NULL, $limit = NULL);
+
+  /**
+   * Getter for the list's range.
+   *
+   * @return array
+   */
+  public function getRange();
+
+  /**
+   * Build the handler's query.
+   */
+  public function buildQuery();
+
+  /**
+   * Returns the number of entities in this list.
+   *
+   * @return int
+   */
+  public function count();
+
+  /**
    * Getter for the cache tags that applies to this list.
    *
    * @return array
    */
-  public function getCacheTags();
+  public function cacheTags();
 
   /**
-   * Execute the handler. This function should return a numeric array of
+   * Execute the handler query. This function should return a numeric array of
    * entities, simply keyed by the result index.
    *
    * @see EntityFieldQuery::execute()

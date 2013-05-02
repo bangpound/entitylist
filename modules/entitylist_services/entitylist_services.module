@@ -38,6 +38,13 @@ function entitylist_services_services_resources() {
  */
 function entitylist_services_list_retrieve($name) {
   $list = entitylist_list_load($name);
+  $offset = !empty($_GET['offset']) ? $_GET['offset'] : NULL;
+  $limit = !empty($_GET['limit']) ? $_GET['limit'] : NULL;
+  $arguments = !empty($_GET['arguments']) ? $_GET['arguments'] : array();
+
+  $list->setRange($offset, $limit);
+  $list->setArguments($arguments);
+
   $entity_type = $list->entityType();
   $entities = $list->execute();
 
@@ -47,7 +54,7 @@ function entitylist_services_list_retrieve($name) {
   }
 
   $cachetags = FALSE;
-  if (module_exists('cachetags')) {
+  if (module_exists('cachetags') && function_exists('cache_add_request_tags')) {
     $cachetags = TRUE;
   }
   foreach ($entities as &$entity) {

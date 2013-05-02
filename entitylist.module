@@ -53,6 +53,15 @@ function entitylist_entitylist_handlers() {
       'path' => $path,
     ),
   );
+  $handlers['EntityListHandlerSQL'] = array(
+    'name' => 'SQL Query',
+    'description' => 'A SQL query. Suitable when high performance or complexity is key.',
+    'handler' => array(
+      'class' => 'EntityListHandlerSQL',
+      'file' => 'EntityListHandlerSQL.inc',
+      'path' => $path,
+    ),
+  );
   if (module_exists('views')) {
     $handlers['EntityListHandlerViews'] = array(
       'name' => 'Views',
@@ -162,13 +171,9 @@ function entitylist_list_create($schema, $item) {
 
 /**
  * Load function for an entity list object.
- *
- * @todo
- *   We need a way to load one list, without fetching all of them. We probably
- *   should make better use of $args in entitylist_list_load_all().
  */
 function entitylist_list_load($name) {
-  $lists = entitylist_list_load_all();
+  $lists = entitylist_list_load_all(array('name' => $name));
   if (isset($lists[$name])) {
     return $lists[$name];
   }
@@ -178,21 +183,33 @@ function entitylist_list_load($name) {
  * Load function for an entity list object.
  */
 function entitylist_list_load_all($args = array()) {
-  $cache = &drupal_static(__FUNCTION__, array());
-
-  if (empty($cache)) {
-    $type = !empty($args) ? 'conditions' : 'all';
-    ctools_include('export');
-    $lists = ctools_export_load_object('entitylist_lists', $type, $args);
-    if (isset($lists)) {
-      foreach ($lists as &$list) {
-        // Load each list's configuration into itself.
-        $list->load();
-      }
-      $cache = $lists;
+  $type = !empty($args) ? 'conditions' : 'all';
+  ctools_include('export');
+  $lists = ctools_export_load_object('entitylist_lists', $type, $args);
+  if (isset($lists)) {
+    foreach ($lists as &$list) {
+      // Load each list's configuration into itself.
+      $list->load();
     }
   }
-  return $cache;
+  return $lists;
+}
+
+/**
+ * Load an entity list from a context.
+ *
+ * @todo Figure out why we need to do this. Theory: when the list is being
+ * passed around between contexts, relationships and panes the state (and hence
+ * the arguments) are lost. The temporary solution has been to save the
+ * arguments in the context object.
+ *
+ * @see entitylist_ctools_context()
+ * @see entitylist_ctools_relationship_context()
+ */
+function entitylist_list_load_from_context($context) {
+  $list = $context->data;
+  $list->setArguments($context->setArguments);
+  return $list;
 }
 
 /**
@@ -211,11 +228,11 @@ function entitylist_ctools_context_info($list, $parent, $relationship = FALSE) {
   if (empty($list)) {
     return $contexts;
   }
-  $arguments = $list->argumentInput();
+  $arguments = $list->requiredArguments();
 
   // Only relationships can require other arguments (contexts).
   //
-  // TODO: Consider if EntityListHandler::argumentInput should return context
+  // TODO: Consider if EntityListHandler::requiredArguments should return context
   // instances directly. Could potentially simplify a lot of code here.
   if ($relationship) {
     foreach ($arguments as $key => $info) {
@@ -255,5 +272,69 @@ function entitylist_ctools_context_info($list, $parent, $relationship = FALSE) {
     'required context' => $contexts,
     'context' => $function,
     'context name' => $list->name,
+    'edit form' => 'entitylist_ctools_context_edit_form',
   );
 }
+
+/**
+ * Form callback shared between context and relation plugins.
+ */
+function entitylist_ctools_context_edit_form($form, &$form_state) {
+  $conf = &$form_state['conf'];
+  $form['use_pager'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable a pager'),
+    '#description' => t("Enable the use of a pager for this list. Checking this box won't display a pager on it self. You would need to place the Entity List <em>Pager</em> pane where you want to have the pager."),
+    '#default_value' => isset($conf['use_pager']) ? $conf['use_pager'] : FALSE,
+  );
+  $form['pager_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Pager ID'),
+    '#description' => t("Unless you're experiencing problems with pagers related to this list, you should leave this at 0. If using multiple pagers on one page you may need to set this number to a higher value so as not to conflict within the ?page= array. Large values will add a lot of commas to your URLs, so avoid if possible. <strong>When changing this value you might need to reconfigure panes that are affected by this pager</strong>."),
+    '#default_value' => isset($conf['pager_id']) ? $conf['pager_id'] : 0,
+    '#states' => array(
+      'visible' => array(
+        ':input#edit-use-pager' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['range'] = array(
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#title' => t('Range'),
+  );
+  $form['range']['offset'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Offset'),
+    '#description' => t('The number of items to skip. For example, if this field is 3, the first 3 items will be skipped and not displayed.'),
+    '#default_value' => isset($conf['range']['offset']) ? $conf['range']['offset'] : 0,
+  );
+  $form['range']['limit'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Limit'),
+    '#description' => t('The number of items to display. Enter 0 for no limit.'),
+    '#default_value' => isset($conf['range']['limit']) ? $conf['range']['limit'] : 10,
+  );
+  return $form;
+}
+
+/**
+ * Helper function to count in ranges.
+ */
+function entitylist_count(&$total, &$success, $range) {
+  if ($total >= (int)$range['offset']) {
+    if (empty($range['limit'])) {
+      $total++;
+      $success++;
+      return TRUE;
+    }
+    elseif ($success < (int)$range['limit']) {
+      $total++;
+      $success++;
+      return TRUE;
+    }
+  }
+  $total++;
+  return FALSE;
+}
+
