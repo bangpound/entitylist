@@ -18,11 +18,11 @@ class EntityListHandlerEFQ implements EntityListHandler {
   }
 
   public function entityType() {
-    return call_user_func_array(array($this->config['class'], 'entityType'));
+    return call_user_func(array($this->config['class_name'], 'entityType'));
   }
 
   public function requiredArguments() {
-    return call_user_func_array(array($this->config['class'], 'requiredArguments'));
+    return call_user_func(array($this->config['class_name'], 'requiredArguments'));
   }
 
   public function setArguments(Array $arguments = array()) {
@@ -68,7 +68,15 @@ class EntityListHandlerEFQ implements EntityListHandler {
     $class_name = $this->config['class_name'];
     // TODO: Check that $class_name implements EntityListEFQ.
     $query = new $class_name($this->config, $arguments);
-    return $query->execute();
+    $range = $this->getRange();
+    if (!is_null($range['offset']) && !is_null($range['limit'])) {
+      $query->range($range['offset'], $range['limit']);
+    }
+    $entities = array();
+    foreach ($query->execute() as $entity_stubs) {
+      $entities += entity_load($this->entityType(), array_keys($entity_stubs));
+    }
+    return $entities;
   }
 
   public function cacheTags() {
