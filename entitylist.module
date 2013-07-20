@@ -319,6 +319,18 @@ function entitylist_ctools_context_edit_form($form, &$form_state) {
 }
 
 /**
+ * Form submit callback shared between context and relation plugins.
+ */
+function entitylist_ctools_context_edit_form_submit($form, &$form_state) {
+  $conf = &$form_state['conf'];
+  foreach (array('use_pager', 'pager_id', 'range') as $key) {
+    if (isset($form_state['values'][$key])) {
+      $conf[$key] = $form_state['values'][$key];
+    }
+  }
+}
+
+/**
  * Helper function to count in ranges.
  */
 function entitylist_count(&$total, &$success, $range) {

@@ -102,15 +102,6 @@ function entitylist_ctools_context($empty, $data = NULL, $conf = FALSE, $plugin)
   }
 }
 
-function entitylist_ctools_context_edit_form_submit($form, &$form_state) {
-  $conf = &$form_state['conf'];
-  foreach (array('use_pager', 'pager_id', 'range') as $key) {
-    if (isset($form_state['values'][$key])) {
-      $conf[$key] = $form_state['values'][$key];
-    }
-  }
-}
-
 function entitylist_ctools_context_convert($context, $type) {
   switch ($type) {
     case 'name':

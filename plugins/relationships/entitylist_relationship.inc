@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Entity list relationship.
+ */
 
 $plugin = array(
   'title' => t('List with arguments'),
@@ -6,7 +10,14 @@ $plugin = array(
   'context' => 'entitylist_ctools_relationship_context',
   'get child' => 'entitylist_ctools_relationship_get_child',
   'get children' => 'entitylist_ctools_relationship_get_children',
-  'edit form' => 'entitylist_ctools_relationship_settings_form',
+  'defaults' => array(
+    'use_pager' => FALSE,
+    'pager_id' => 0,
+    'range' => array(
+      'offset' => 0,
+      'limit' => 10,
+    ),
+  ),
 );
 
 function entitylist_ctools_relationship_get_child($plugin, $parent, $child) {
