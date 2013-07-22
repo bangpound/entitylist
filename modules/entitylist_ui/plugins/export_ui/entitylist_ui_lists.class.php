@@ -89,16 +89,18 @@ class entitylist_ui_lists extends ctools_export_ui {
 
   function edit_form_preview(&$form, &$form_state) {
     $list = $form_state['item'];
-    $items = array();
-    $list->setRange(0, 10);
-    $entity_type = $list->entityType();
-    $entities = $list->execute();
     $num_rows = FALSE;
-    foreach ($entities as $entity) {
-      $label = entity_label($entity_type, $entity);
-      $uri = entity_uri($entity_type, $entity);
-      $items[] = l($label, $uri['path']);
-      $num_rows = TRUE;
+    $items = array();
+    if (is_a($list, 'EntityList')) {
+      $list->setRange(0, 10);
+      $entity_type = $list->entityType();
+      $entities = $list->execute();
+      foreach ($entities as $entity) {
+        $label = entity_label($entity_type, $entity);
+        $uri = entity_uri($entity_type, $entity);
+        $items[] = l($label, $uri['path']);
+        $num_rows = TRUE;
+      }
     }
 
     $form['preview'] =  $num_rows ? array(
