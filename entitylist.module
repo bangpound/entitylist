@@ -125,6 +125,15 @@ function entitylist_entitylist_handlers() {
         'path' => $path,
       ),
     );
+    $handlers['EntityListHandlerApachesolrMLT'] = array(
+      'name' => 'Solr MLT query',
+      'description' => t('Fetches entities (only nodes) from an Solr query made with the Apachesolr module.'),
+      'handler' => array(
+        'class' => 'EntityListHandlerApachesolrMLT',
+        'file' => 'EntityListHandlerApachesolrMLT.inc',
+        'path' => $path,
+      ),
+    );
   }
   if (module_exists('search_api')) {
     $handlers['EntityListHandlerSearchApi'] = array(
