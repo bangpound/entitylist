@@ -29,6 +29,7 @@ function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context)
 
   $block = new stdClass();
   $block->module  = 'entitylist';
+  $block->delta = $subtype;
   // Provide integration with the cachetags plugin.
   $tags = $list->cacheTags(TRUE);
   $block->cache_tags = $block->request_tags = $tags;
@@ -54,6 +55,7 @@ function entitylist_ctools_entity_render($subtype, $conf, $panel_args, $context)
   else {
     list(, $view_mode) = explode(':', $conf['view_mode']);
   }
+  $block->title = entity_label($entity_type, $entity);
   if ($entity_type == 'comment') {
     $node = node_load($entity->nid);
     $block->content = $view_function($entity, $node, $view_mode);
@@ -114,9 +116,10 @@ function entitylist_ctools_entity_form($form, &$form_state) {
 function entitylist_ctools_entity_form_submit($form, &$form_state) {
   $conf = &$form_state['conf'];
   // Fetch pager settings from the context.
-  $context = $form_state['contexts'][$conf['context']];
-  $conf['use_pager'] = !empty($context->use_pager) ? $context->use_pager : FALSE;
-  $conf['pager_id'] = isset($context->pager_id) ? (int)$context->pager_id : 0;
+  if ($context = $form_state['contexts'][$form_state['values']['context']]) {
+    $conf['use_pager'] = !empty($context->use_pager) ? $context->use_pager : FALSE;
+    $conf['pager_id'] = isset($context->pager_id) ? (int)$context->pager_id : 0;
+  }
   // Save values from the form.
   foreach (array('index', 'view_mode') as $key) {
     $conf[$key] = $form_state['values'][$key];

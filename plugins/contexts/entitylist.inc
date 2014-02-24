@@ -24,7 +24,6 @@ $plugin = array(
     'description' => t('Description'),
   ),
   'convert' => 'entitylist_ctools_context_convert',
-  'edit form' => 'entitylist_ctools_context_edit_form',
   'get child' => 'entitylist_ctools_context_get_child',
   'get children' => 'entitylist_ctools_context_get_children',
 );

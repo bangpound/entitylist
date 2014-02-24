@@ -14,6 +14,8 @@ class EntityListHandlerViews implements EntityListHandler {
 
   protected $range = array('offset' => NULL, 'limit' => NULL);
 
+  protected $view;
+
   public function __construct(Array $config = array()) {
     $defaults = array(
       'view' => '',

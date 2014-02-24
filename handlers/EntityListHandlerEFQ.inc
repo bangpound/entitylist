@@ -75,7 +75,7 @@ class EntityListHandlerEFQ implements EntityListHandler {
   public function execute() {
     $query = $this->query;
     $range = $this->getRange();
-    if (!is_null($range['offset']) && !is_null($range['limit'])) {
+    if (!empty($range['offset']) || !empty($range['limit'])) {
       $query->range($range['offset'], $range['limit']);
     }
     $entities = array();

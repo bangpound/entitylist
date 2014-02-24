@@ -8,11 +8,12 @@ $plugin = array(
   'title' => t('List with arguments'),
   'description' => t('Creates a list context from arguments.'),
   'context' => 'entitylist_ctools_relationship_context',
+  'edit form' => 'entitylist_ctools_context_edit_form',
   'get child' => 'entitylist_ctools_relationship_get_child',
   'get children' => 'entitylist_ctools_relationship_get_children',
   'defaults' => array(
     'use_pager' => FALSE,
-    'pager_id' => 0,
+    'pager_id' => NULL,
     'range' => array(
       'offset' => 0,
       'limit' => 10,
@@ -46,6 +47,7 @@ function entitylist_ctools_relationship_context($contexts, $conf) {
 
   if (isset($conf['name'])) {
     list($parent, $name) = explode(':', $conf['name']);
+    /** @var EntityList $list */
     $list = entitylist_list_load($name);
     $required_arguments = $list->requiredArguments();
 

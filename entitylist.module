@@ -332,11 +332,10 @@ function entitylist_ctools_context_edit_form($form, &$form_state) {
  */
 function entitylist_ctools_context_edit_form_submit($form, &$form_state) {
   $conf = &$form_state['conf'];
-  foreach (array('use_pager', 'pager_id', 'range') as $key) {
-    if (isset($form_state['values'][$key])) {
-      $conf[$key] = $form_state['values'][$key];
-    }
-  }
+
+  $conf['use_pager'] = !empty($form_state['values']['use_pager']);
+  $conf['pager_id'] = !empty($form_state['values']['pager_id']) ? (int) $form_state['values']['pager_id'] : NULL;
+  $conf['range'] = array_map('intval', $form_state['values']['range']);
 }
 
 /**
