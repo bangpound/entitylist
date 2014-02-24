@@ -10,6 +10,9 @@ class EntityListHandlerEFQ implements EntityListHandler {
 
   protected $range = array('offset' => NULL, 'limit' => NULL);
 
+  /** @var EntityListEFQ|EntityFieldQuery */
+  protected $query;
+
   public function __construct(Array $config = array()) {
     $defaults = array(
       'class_name' => '',
@@ -56,18 +59,21 @@ class EntityListHandlerEFQ implements EntityListHandler {
   }
 
   public function buildQuery() {
-
+    $arguments = $this->getArguments();
+    $class_name = $this->config['class_name'];
+    if (is_a($class_name, 'EntityListEFQ', TRUE)) {
+      $this->query = new $class_name($this->config, $arguments);
+    }
   }
 
   public function count() {
-    return FALSE;
+    $query = clone $this->query;
+    $query->count();
+    return $query->execute();
   }
 
   public function execute() {
-    $arguments = $this->getArguments();
-    $class_name = $this->config['class_name'];
-    // TODO: Check that $class_name implements EntityListEFQ.
-    $query = new $class_name($this->config, $arguments);
+    $query = $this->query;
     $range = $this->getRange();
     if (!is_null($range['offset']) && !is_null($range['limit'])) {
       $query->range($range['offset'], $range['limit']);
