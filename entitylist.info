@@ -15,3 +15,4 @@ files[] = handlers/EntityListHandlerNodeQueue.inc
 files[] = handlers/EntityListHandlerSearchApi.inc
 files[] = handlers/EntityListHandlerSQL.inc
 files[] = handlers/EntityListHandlerViews.inc
+files[] = handlers/EntityListHandlerApachesolrMLT.inc
