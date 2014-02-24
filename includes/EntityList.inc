@@ -74,16 +74,9 @@ class EntityList {
   }
 
   public function setPager($limit = NULL, $element = NULL) {
-    if (!isset($element)) {
-      $element = PagerDefault::$maxElement++;
-    }
-    elseif ($element >= PagerDefault::$maxElement) {
-      PagerDefault::$maxElement = $element + 1;
-    }
-
     $this->pager = array(
-      'limit' => (int)$limit,
-      'element' => (int)$element,
+      'limit' => $limit,
+      'element' => $element,
     );
     return $this;
   }
@@ -93,16 +86,21 @@ class EntityList {
   }
 
   function initializePager() {
-    if (!$this->pagerInitialized) {
-      $pager = $this->getPager();
-      if (!empty($pager['limit'])) {
+    if (!$this->pagerInitialized && $this->pager) {
+      if (!empty($this->pager['limit'])) {
+        if (!isset($this->pager['element'])) {
+          $this->pager['element'] = PagerDefault::$maxElement++;
+        }
+        elseif ($this->pager['element'] >= PagerDefault::$maxElement) {
+          PagerDefault::$maxElement = $this->pager['element'] + 1;
+        }
         $count = $this->count();
         if ($count) {
-          $page = pager_find_page($pager['element']);
-          $pager['total'] = $count;
-          $pager['offset'] = $page * $pager['limit'];
-          pager_default_initialize($pager['total'], $pager['limit'], $pager['element']);
-          $this->setRange($pager['offset'], $pager['limit']);
+          $page = pager_find_page($this->pager['element']);
+          $this->pager['total'] = $count;
+          $this->pager['offset'] = $page * $this->pager['limit'];
+          pager_default_initialize($this->pager['total'], $this->pager['limit'], $this->pager['element']);
+          $this->setRange($this->pager['offset'], $this->pager['limit']);
         }
         $this->pagerInitialized = TRUE;
       }

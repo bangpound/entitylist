@@ -63,7 +63,7 @@ function entitylist_ctools_relationship_context($contexts, $conf) {
 
     // Configure the pager.
     $range = $conf['range'];
-    if (!empty($conf['use_pager']) && isset($conf['pager_id'])) {
+    if (!empty($conf['use_pager'])) {
       // Only configure the pager once.
       if (!$list->getPager()) {
         $list->setPager($range['limit'], $conf['pager_id']);

@@ -290,8 +290,8 @@ function entitylist_ctools_context_edit_form($form, &$form_state) {
   $form['pager_id'] = array(
     '#type' => 'textfield',
     '#title' => t('Pager ID'),
-    '#description' => t("Unless you're experiencing problems with pagers related to this list, you should leave this at 0. If using multiple pagers on one page you may need to set this number to a higher value so as not to conflict within the ?page= array. Large values will add a lot of commas to your URLs, so avoid if possible. <strong>When changing this value you might need to reconfigure panes that are affected by this pager</strong>."),
-    '#default_value' => isset($conf['pager_id']) ? $conf['pager_id'] : 0,
+    '#description' => t("Unless you're experiencing problems with pagers related to this list, you should leave this blank. If using multiple pagers on one page you may need to set this number to a higher value so as not to conflict within the ?page= array. Large values will add a lot of commas to your URLs, so avoid if possible. <strong>When changing this value you might need to reconfigure panes that are affected by this pager</strong>."),
+    '#default_value' => isset($conf['pager_id']) ? $conf['pager_id'] : NULL,
     '#states' => array(
       'visible' => array(
         ':input#edit-use-pager' => array('checked' => TRUE),

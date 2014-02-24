@@ -23,6 +23,7 @@ function entitylist_ctools_pager_render($subtype, $conf, $panel_args, $context) 
     return $block;
   }
   $list->initializePager();
+  $pager = $list->getPager();
   $block->content = theme('pager', array('element' => $pager['element']));
   return $block;
 }
