@@ -57,23 +57,12 @@ class EntityListHandlerApachesolrMLT extends EntityListHandlerApachesolr {
     return array();
   }
 
-  public function validateForm($element, &$form_state) {
-    if (!empty($element['#value'])) {
-      $value = Yaml::parse($element['#value']);
-      form_set_value($element, $value, $form_state);
-      //form_error($element, t('The "!name" option must contain a valid value. You may either leave the text field empty or enter a string like "512" (bytes), "80 KB" (kilobytes) or "50 MB" (megabytes).', array('!name' => t($element['title']))));
-    }
-  }
-
   public function configForm(&$form_state) {
     $form = parent::configForm($form_state);
     $form['settings'] = array(
-      '#type' => 'textarea',
+      '#type' => 'yaml',
       '#title' => t('Settings'),
-      '#default_value' => Yaml::dump($this->config['settings']),
-      '#element_validate' => array(
-        array($this, 'validateForm'),
-      ),
+      '#default_value' => $this->config['settings'],
     );
     return $form;
   }
