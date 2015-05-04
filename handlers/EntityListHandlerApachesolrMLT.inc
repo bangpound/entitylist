@@ -44,8 +44,10 @@ class EntityListHandlerApachesolrMLT extends EntityListHandlerApachesolr {
       // Get our specific environment for the MLT block
       $results = call_user_func_array('apachesolr_search_mlt_suggestions', $this->searchArguments());
       $ids = array();
-      foreach ($results as $result) {
-        $ids[] = $result->entity_id;
+      if ($results) {
+        foreach ($results as $result) {
+          $ids[] = $result->entity_id;
+        }
       }
       if (!empty($ids)) {
         return entity_load($entity_type, $ids);
